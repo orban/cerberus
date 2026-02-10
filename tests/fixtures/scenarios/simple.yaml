@@ -1,0 +1,8 @@
+input: |
+  Review this code for bugs:
+  ```python
+  def add(a, b):
+      return a + b
+  ```
+metadata:
+  category: test

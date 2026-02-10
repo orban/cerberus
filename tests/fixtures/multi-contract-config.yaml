@@ -1,0 +1,28 @@
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+studies:
+  - name: multi-contract-test
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: exits-cleanly
+        type: code
+        assert: "output.meta.exitCode === 0"
+        threshold: 0.90
+        confidence: 0.95
+        trials: 30
+
+      - name: parses-json
+        type: code
+        assert: "output.meta.jsonParsed === true"
+        threshold: 0.90
+        confidence: 0.95
+        trials: 30
+
+      - name: has-suggestions
+        type: code
+        assert: "Array.isArray(output.parsed.suggestions)"
+        threshold: 0.90
+        confidence: 0.95
+        trials: 30
