@@ -119,7 +119,7 @@ The practical impact:
 | 10/10 | 100% | [100%, 100%] | [72%, 100%] |
 | 0/10 | 0% | [0%, 0%] | [0%, 28%] |
 | 45/50 | 90% | [82%, 98%] | [79%, 96%] |
-| 90/100 | 90% | [84%, 96%] | [83%, 95%] |
+| 90/100 | 90% | [84%, 96%] | [83%, 94%] |
 
 Notice how Wilson is *wider* for small samples and converges to the naive interval as *n* grows. That's exactly the behavior you want — appropriate skepticism.
 
@@ -236,11 +236,12 @@ The savings compound with model cost. SPRT doesn't just give you better statisti
 
 The code behind these ideas is available as a reference implementation:
 
-**[github.com/your-org/cerberus](https://github.com/your-org/cerberus)** — 1,600 lines of TypeScript, 80 tests, zero magic.
+**[github.com/orban/cerberus](https://github.com/orban/cerberus)** — 1,600 lines of TypeScript, 80 tests, zero magic.
 
 ```bash
-# Install
-npm install cerberus
+git clone https://github.com/orban/cerberus.git
+cd cerberus
+npm install && npm run build
 
 # Initialize a starter config
 npx cerberus init
@@ -285,7 +286,7 @@ Contracts:
 Suite: PASS (2/2 contracts satisfied)
 ```
 
-The implementation is deliberately minimal — 9 source files, 4 runtime dependencies — so you can read the code and understand every decision. See the [README](https://github.com/your-org/cerberus) for a file-by-file map of which concepts live where.
+The implementation is deliberately minimal — 9 source files, 4 runtime dependencies — so you can read the code and understand every decision. See the [README](https://github.com/orban/cerberus) for a file-by-file map of which concepts live where.
 
 ---
 
