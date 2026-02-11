@@ -16,6 +16,8 @@ That test wasn't flaky. It was *statistically inevitable*. You're testing a stoc
 
 When you write `assert(f(x) === y)`, you're making a very specific claim: *this function always returns this value for this input*. That's valid for `parseInt("42")`. It's not valid for a system that queries a language model.
 
+To be clear: some agent properties *are* deterministic. "The process exits without crashing" or "the output is valid JSON" — you can still hard-assert those. The problem is when you apply the same pattern to inherently stochastic properties like output quality, task completion, or rubric adherence.
+
 An AI agent is a Bernoulli process. Each invocation is a trial with some probability *p* of producing a satisfactory result. You don't know *p*. You're trying to figure out if *p* is high enough.
 
 Here's where it gets painful. Say your agent genuinely has a 90% success rate — solid, shippable. You have 10 test cases, each run once. What's the probability of a perfectly clean CI run?
@@ -25,6 +27,8 @@ P(all 10 pass) = 0.9^10 = 0.349
 ```
 
 **65% chance of at least one failure.** Not because your agent is broken — because you ran 10 independent Bernoulli trials with p=0.9. Your "flaky" CI isn't flaky. It's working exactly as probability says it should. You just built a testing framework that can't handle that.
+
+(This assumes independent trials — if your tests share a common failure mode, failures will cluster rather than distribute uniformly. The math changes, but the fundamental problem doesn't: deterministic assertions on stochastic behavior produce misleading results either way.)
 
 Run those same 10 tests twice each? Now it's p=0.9 across 20 trials. P(at least one failure) = 87%. The more tests you add, the worse it gets.
 
@@ -60,7 +64,7 @@ If the trial passed:  logLR += log(p₀ / p₁)
 If the trial failed:  logLR += log((1 - p₀) / (1 - p₁))
 ```
 
-Where p₀ is your threshold (0.90) and p₁ is the alternative (0.80). Then compare against two boundaries:
+Where p₀ is your threshold (0.90) and p₁ is the alternative (0.80). Technically, SPRT tests simple hypotheses (p = p₀ vs p = p₁), not the composite "p ≥ threshold" you actually care about. The standard trick is to pick p₁ as a specific "unacceptable" rate below your threshold — the reference implementation uses p₁ = max(0.01, p₀ - 0.10) — and test between those two points. Then compare against two boundaries:
 
 - **Accept (agent is good enough):** logLR ≥ log((1 - β) / α)
 - **Reject (agent is failing):** logLR ≤ log(β / (1 - α))
@@ -94,7 +98,7 @@ Trial 5:  fail → logLR = -1.86      → REJECT ✗
 
 5 trials. It cuts losses fast.
 
-SPRT is both a statistical tool and a cost optimizer. For clearly passing or clearly failing agents, it saves 50-80% of trial runs. That's real money when each trial is an LLM call.
+SPRT is both a statistical tool and a cost optimizer. For clearly passing or clearly failing agents, it saves 50-80% of trial runs. That's real money when each trial is an LLM call. (For borderline agents — true rate near the indifference zone — SPRT can run as long as or longer than fixed-N. That's a feature: it's telling you the answer is genuinely ambiguous.)
 
 ## Confidence intervals that mean something
 
@@ -141,9 +145,9 @@ A better approach is the Benjamini-Hochberg (BH) procedure. Instead of controlli
 2. For the k-th p-value, compare against (k/n) × α
 3. Find the largest k that passes; reject all up to that point
 
-In practice, BH is less conservative than Bonferroni while still providing rigorous control. With 10 contracts, Bonferroni throws out twice as many valid results on average.
+In practice, BH is less conservative than Bonferroni while still providing rigorous control. With 10 contracts, Bonferroni throws out twice as many valid results on average. The trade-off: BH controls the *proportion* of false positives (FDR), while Bonferroni controls the *probability of any* false positive (FWER). If your requirement is "absolutely no contract may be incorrectly passed," Bonferroni is the right choice. If you're optimizing for overall suite accuracy, BH is better.
 
-This is why the reference implementation defaults to BH correction. If you have a single contract, it doesn't matter. If you have 15 contracts checking different aspects of your agent's output, it matters a lot.
+This is why the reference implementation defaults to BH correction but supports both. If you have a single contract, it doesn't matter. If you have 15 contracts checking different aspects of your agent's output, it matters a lot.
 
 ## What CI/CD should actually look like
 
