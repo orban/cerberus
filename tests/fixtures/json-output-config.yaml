@@ -1,0 +1,14 @@
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+studies:
+  - name: json-test
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: outputs-json
+        type: code
+        assert: "output.meta.jsonParsed === true"
+        threshold: 0.90
+        confidence: 0.95
+        trials: 30
