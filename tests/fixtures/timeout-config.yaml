@@ -12,4 +12,4 @@ studies:
         assert: "output.meta.exitCode === 0"
         threshold: 0.90
         confidence: 0.95
-        trials: 3
+        trials: 5

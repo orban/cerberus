@@ -122,8 +122,8 @@ describe("SPRT", () => {
     const config = sprtConfigFromContract(0.90, 0.95);
     const state = createSPRT(config);
 
-    const A = (1 - config.beta) / config.alpha;
-    const B = config.beta / (1 - config.alpha);
+    const A = (1 - config.alpha) / config.beta;
+    const B = config.alpha / (1 - config.beta);
 
     expect(state.upperBoundary).toBeCloseTo(Math.log(A), 10);
     expect(state.lowerBoundary).toBeCloseTo(Math.log(B), 10);

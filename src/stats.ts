@@ -81,8 +81,8 @@ export function sprtConfigFromContract(
 }
 
 export function createSPRT(config: SPRTConfig): SPRTState {
-  const A = (1 - config.beta) / config.alpha; // upper boundary
-  const B = config.beta / (1 - config.alpha); // lower boundary
+  const A = (1 - config.alpha) / config.beta; // upper boundary (accept H₀)
+  const B = config.alpha / (1 - config.beta); // lower boundary (reject H₀)
 
   return {
     logLR: 0,

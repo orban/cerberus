@@ -112,8 +112,8 @@ describe("E2E: confidence intervals", () => {
   it("CI contains observed rate", async () => {
     const result = await run("valid-config.yaml");
     const contract = result.studies[0]!.contractResults[0]!;
-    expect(contract.ci.lower).toBeLessThanOrEqual(contract.observedRate);
-    expect(contract.ci.upper).toBeGreaterThanOrEqual(contract.observedRate);
+    expect(contract.ci.lower).toBeLessThanOrEqual(contract.observedRate + 1e-9);
+    expect(contract.ci.upper).toBeGreaterThanOrEqual(contract.observedRate - 1e-9);
   });
 });
 
