@@ -28,6 +28,8 @@ P(all 10 pass) = 0.9^10 = 0.349
 
 **65% chance of at least one failure.** Not because your agent is broken — because you ran 10 independent Bernoulli trials with p=0.9. Your "flaky" CI isn't flaky. It's working exactly as probability says it should. You just built a testing framework that can't handle that.
 
+![A 90% pass rate almost guarantees at least one failure](figures/failure-probability.svg)
+
 (This assumes independent trials. Real systems often show overdispersion — if your tests share a common failure mode, failures will cluster rather than distribute uniformly. The math changes, but the fundamental problem doesn't: deterministic assertions on stochastic behavior produce misleading results either way.)
 
 Run those same 10 tests twice each? Now it's p=0.9 across 20 trials. P(at least one failure) = 87%. The more tests you add, the worse it gets.
@@ -100,6 +102,8 @@ Trial 7:  fail → logLR = -3.229     → REJECT ✗
 
 7 trials. It cuts losses fast.
 
+![SPRT random walk — good agent accepted in 14 trials, bad agent rejected in 7](figures/sprt-random-walk.svg)
+
 SPRT is both a statistical tool and a cost optimizer. For clearly passing or clearly failing agents, it saves 60-80% of trial runs. That's real money when each trial is an LLM call. (For borderline agents — true rate near the indifference zone — SPRT can run as long as or longer than fixed-N. That's a feature: it's telling you the answer is genuinely ambiguous.)
 
 ## Confidence intervals that mean something
@@ -126,6 +130,8 @@ The practical impact:
 | 0/10 | 0% | [0%, 0%] | [0%, 28%] |
 | 45/50 | 90% | [82%, 98%] | [79%, 96%] |
 | 90/100 | 90% | [84%, 96%] | [83%, 94%] |
+
+![Wilson score intervals vs naive (Wald) intervals](figures/wilson-vs-naive.svg)
 
 Notice how Wilson is *wider* for small samples and converges to the naive interval as *n* grows. That's exactly the behavior you want — appropriate skepticism.
 
