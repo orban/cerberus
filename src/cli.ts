@@ -53,6 +53,115 @@ program
     }
   });
 
+interface CheckCliOptions {
+  readonly base?: string;
+  readonly policy?: string;
+  readonly description?: string;
+  readonly descriptionFile?: string;
+  readonly model?: string;
+  readonly llm: boolean; // --no-llm flips this to false
+  readonly llmContent: string;
+  readonly json?: boolean;
+  readonly output?: string;
+  readonly advisory?: boolean;
+  readonly override?: string;
+  readonly replay?: string;
+  readonly replayMerges?: string;
+}
+
+program
+  .command("check")
+  .description("Analyze a git change range into a Change Contract with a policy verdict")
+  .argument("[range]", "git range (base..head, base...head, or a single base ref; default: merge-base with the base branch)")
+  .option("--base <ref>", "Base ref (default resolution: origin/HEAD > origin/main > main)")
+  .option("--policy <path>", "Policy YAML (default: ./pcc-policy.yaml when present, else the embedded advisory-first default)")
+  .option("--description <text>", "Task or PR description")
+  .option("--description-file <path>", "Read the task or PR description from a file")
+  .option("--model <model>", "LLM model for claim generation")
+  .option("--no-llm", "Skip LLM claim generation (deterministic claims only)")
+  .option("--llm-content <mode>", "Prompt content mode: hunks or minimal (no raw diff content)", "hunks")
+  .option("--json", "Output the result as JSON instead of markdown")
+  .option("-o, --output <path>", "Write JSON result to a file")
+  .option("--advisory", "Always exit 0 (verdict still reported)")
+  .option("--override <owner-rationale>", 'Record a reviewer override: "<owner>: <rationale>" (exits 0)')
+  .option("--replay <path>", "Batch mode: analyze newline-separated ranges from a file")
+  .option("--replay-merges <n>", "Batch mode: analyze the last N first-parent merge commits")
+  .action(async (range: string | undefined, options: CheckCliOptions) => {
+    const { CerberusError, ConfigError } = await import("./errors.js");
+    try {
+      if (options.llmContent !== "hunks" && options.llmContent !== "minimal") {
+        throw new ConfigError(`Invalid --llm-content: ${options.llmContent} (expected hunks or minimal)`);
+      }
+
+      const cwd = process.cwd();
+      const { existsSync } = await import("node:fs");
+
+      let policyPath: string | undefined = options.policy;
+      if (!policyPath && existsSync("pcc-policy.yaml")) {
+        policyPath = "pcc-policy.yaml";
+      }
+
+      let description = options.description;
+      if (options.descriptionFile !== undefined) {
+        const { readFile } = await import("node:fs/promises");
+        try {
+          description = await readFile(options.descriptionFile, "utf-8");
+        } catch {
+          throw new ConfigError(`Cannot read description file: ${options.descriptionFile}`);
+        }
+      }
+
+      if (options.replay !== undefined || options.replayMerges !== undefined) {
+        const { runReplay } = await import("./pcc/replay.js");
+        const exitCode = await runReplay({
+          cwd,
+          ...(options.replay !== undefined ? { rangesFile: options.replay } : {}),
+          ...(options.replayMerges !== undefined ? { merges: Number(options.replayMerges) } : {}),
+          ...(policyPath !== undefined ? { policyPath } : {}),
+        });
+        process.exit(exitCode);
+      }
+
+      const { runCheck } = await import("./pcc/check.js");
+      const { renderMarkdown, renderJson, persistCheck } = await import("./pcc/report.js");
+
+      process.stderr.write("Analyzing change range...\n");
+      const result = await runCheck({
+        cwd,
+        ...(range !== undefined ? { range } : {}),
+        ...(options.base !== undefined ? { base: options.base } : {}),
+        ...(description !== undefined ? { description } : {}),
+        ...(policyPath !== undefined ? { policyPath } : {}),
+        noLlm: !options.llm,
+        ...(options.model !== undefined ? { model: options.model } : {}),
+        llmContent: options.llmContent,
+        ...(options.advisory !== undefined ? { advisory: options.advisory } : {}),
+        ...(options.override !== undefined ? { override: options.override } : {}),
+      });
+
+      const json = renderJson(result);
+      if (options.output) {
+        const { writeFile } = await import("node:fs/promises");
+        await writeFile(options.output, json + "\n", "utf-8");
+      }
+      if (options.json) {
+        process.stdout.write(json + "\n");
+      } else {
+        process.stdout.write(renderMarkdown(result) + "\n");
+      }
+
+      const persisted = await persistCheck(result, cwd);
+      process.stderr.write(`Result persisted to ${persisted}\n`);
+      process.exit(result.effectiveExitCode);
+    } catch (e) {
+      if (e instanceof CerberusError) {
+        process.stderr.write(`Error: ${e.message}\n`);
+        process.exit(e.exitCode);
+      }
+      throw e;
+    }
+  });
+
 program
   .command("init")
   .description("Scaffold a cerberus.yaml config file")

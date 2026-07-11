@@ -68,6 +68,27 @@ Which file implements which concept from the blog post:
 
 9 source files, ~1,600 lines. 80 tests in `tests/`.
 
+## Proof-carrying changes: `cerberus check`
+
+Beyond running agents, Cerberus can analyze a change itself. `cerberus check`
+turns a git range into a Change Contract — behavioral claims (LLM-proposed,
+deterministic fallback), risk findings (migrations, permissions, public API,
+secrets, unrelated bundling, test integrity), claim-to-test evidence mapping,
+and a policy verdict (`pass` / `pass-with-warnings` / `needs-evidence` /
+`split-required` / `block`) with semantic exit codes.
+
+```bash
+cerberus check origin/main...HEAD --no-llm      # deterministic, local
+cerberus check --description-file pr.txt        # with intent-aware claims (needs an LLM API key)
+cerberus check --replay-merges 50               # tune policy against history
+```
+
+Evidence is statically mapped (never treated as executed proof), the default
+policy is advisory-first (block rules ship disabled), and every result is
+persisted to `.cerberus/checks/`. See [docs/pcc/github-actions.md](docs/pcc/github-actions.md)
+for CI wiring and [the PRD](docs/prds/proof-carrying-changes-prd.md) for the
+product rationale.
+
 ## Commands
 
 ```bash
