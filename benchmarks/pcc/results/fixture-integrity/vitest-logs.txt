@@ -1,0 +1,27 @@
+# Fixture integrity (fixture revision r2 — corrected base overlays), 2026-07-12T01:41:07Z
+=== case-01 HEAD tree: full vitest suite ===
+ Test Files  6 passed (6)
+      Tests  80 passed (80)
+=== case-02 HEAD tree: full vitest suite ===
+ Test Files  7 passed (7)
+      Tests  85 passed (85)
+=== case-03 HEAD tree: full vitest suite ===
+ Test Files  6 passed (6)
+      Tests  80 passed (80)
+=== case-04 HEAD tree: full vitest suite ===
+ Test Files  7 passed (7)
+      Tests  88 passed (88)
+=== discriminating power: case-02 evidence test vs BUGGY impl (case-01 head) — must FAIL ===
+   × SPRT error control (derived from Wald's inequalities) > accepts after exactly 14 consecutive successes at threshold .90, confidence .95 4ms
+   × SPRT error control (derived from Wald's inequalities) > rejects after exactly 4 consecutive failures at threshold .90, confidence .95 0ms
+   × SPRT error control (derived from Wald's inequalities) > asymmetric alpha/beta: confidence .99 keeps accept at 14 but hardens reject to 7 0ms
+   × SPRT empirical error rates (fixed-seed Monte Carlo, 4000 runs) > Type I: rejects a genuinely good agent (p = p0 = .90) at no more than alpha + margin 8ms
+ Test Files  1 failed (1)
+      Tests  4 failed | 1 passed (5)
+=== base trees: cases 02-04 base commit suites ===
+  case-02 base:  Test Files  6 passed (6)
+  case-02 base:       Tests  80 passed (80)
+  case-03 base:  Test Files  6 passed (6)
+  case-03 base:       Tests  80 passed (80)
+  case-04 base:  Test Files  6 passed (6)
+  case-04 base:       Tests  80 passed (80)

@@ -1,0 +1,1 @@
+SUPERSEDED: this run used fixture revision r1 (cases 02/04 base trees lacked the contemporaneous companion changes to tests/e2e.test.ts and tests/fixtures/timeout-config.yaml, so their head suites had 3 failing tests). Fixtures corrected to r2 before the scored runs. Raw output preserved unedited.

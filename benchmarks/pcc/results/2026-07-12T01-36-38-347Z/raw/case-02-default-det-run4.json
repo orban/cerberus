@@ -1,0 +1,19 @@
+{
+  "fixture": "case-02",
+  "policy": "default",
+  "mode": "det",
+  "run": 4,
+  "model": null,
+  "invocation": [
+    "check",
+    "bba8134c564351f9aae366393cd05c83bed431d1..3f060923ded174a527d5b7ad9aebe000b29b3244",
+    "--json",
+    "--description-file",
+    "/Users/ryo/dev/cerberus/benchmarks/pcc/fixtures/case-02/description.md",
+    "--no-llm"
+  ],
+  "exitCode": 0,
+  "wallMs": 99,
+  "stdout": "{\n  \"version\": 1,\n  \"range\": \"bba8134c564351f9aae366393cd05c83bed431d1...3f060923ded174a527d5b7ad9aebe000b29b3244\",\n  \"verdict\": \"pass\",\n  \"effectiveExitCode\": 0,\n  \"noChanges\": false,\n  \"reasons\": [],\n  \"claims\": [],\n  \"findings\": [],\n  \"invariants\": [],\n  \"rollback\": {\n    \"relevant\": false,\n    \"detected\": false,\n    \"explanation\": \"No schema or migration changes.\"\n  },\n  \"override\": null,\n  \"durationMs\": 41\n}\n",
+  "stderr": "Analyzing change range...\nResult persisted to /private/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-ptAUcx/case-02/.cerberus/checks/2026-07-12T01-40-12-536Z.json\n"
+}

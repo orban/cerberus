@@ -1,0 +1,15 @@
+adapter:
+  command: "node ./tests/fixtures/agents/slow.js --scenario {{scenario}}"
+  timeout: 1000
+
+studies:
+  - name: timeout-test
+    scenario: scenarios/simple.yaml
+    max_error_rate: 0.90
+    contracts:
+      - name: exits-cleanly
+        type: code
+        assert: "output.meta.exitCode === 0"
+        threshold: 0.90
+        confidence: 0.95
+        trials: 5

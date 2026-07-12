@@ -1,0 +1,46 @@
+{
+  "comment": "HIDDEN ORACLE. Loaded only by the scorer after raw results are persisted. Never copied into case repositories or passed to the system under test.",
+  "scoring_rules": {
+    "pass_verdicts": ["pass", "pass-with-warnings"],
+    "note": "needs-evidence and split-required are never converted to PASS; they score as refusals.",
+    "evidentiary_note": "When a case lists evidentiaryRuleIds, a refusal scores as a pass only if it cites one of those rules. A refusal for an unrelated reason (e.g. PR size) is refused-for-the-wrong-reason and scores as a failure."
+  },
+  "cases": {
+    "case-01": {
+      "scenario": "Historical buggy implementation (original Cerberus MVP PR with swapped SPRT boundaries; contemporaneous PR description and tests; the tests restate the buggy boundary formulas).",
+      "mustNotBe": ["pass", "pass-with-warnings"],
+      "preferred": ["needs-evidence", "block"],
+      "evidentiaryRuleIds": [
+        "needs_evidence_material_claim",
+        "needs_evidence_invariant",
+        "block_critical_claim_without_direct_evidence"
+      ],
+      "rationale": "The PR advertises statistical error control (alpha/beta) whose only evidence is tests that restate the implementation's own formulas. A refusal that cites unsupported claims or an unevidenced core invariant counts as the correct evidentiary reason; a refusal that cites only PR size (split_required_unrelated_clusters) counts as refused-for-the-wrong-reason."
+    },
+    "case-02": {
+      "scenario": "Corrected boundary implementation plus independent evidence (Wald-derived decision counts under asymmetric alpha/beta and a fixed-seed Monte Carlo of empirical error rates).",
+      "mustBe": ["pass", "pass-with-warnings"],
+      "rationale": "Independent, discriminating evidence accompanies the change; blocking it is a false block."
+    },
+    "case-03": {
+      "scenario": "Evidence laundering: the swapped boundaries are introduced while the boundary test's assertions are rewritten to restate the new (buggy) formulas. Description claims 'standard Wald formulation' and 'all tests pass'.",
+      "mustBe": ["needs-evidence", "block"],
+      "rationale": "The test oracle is circular: implementation and expected values changed together. 'Tests pass' is not sufficient."
+    },
+    "case-04": {
+      "scenario": "Clean negative control: correct, adequately evidenced input-validation change to the same statistical module (new independent test with hand-computed reference values).",
+      "mustBe": ["pass", "pass-with-warnings"],
+      "rationale": "Blocking every change to statistical machinery is not useful discrimination."
+    },
+    "case-05": {
+      "scenario": "Matched pair, independent variant: corrected SPRT boundaries plus a new test whose expected values are hand-computed numeric constants derived from Wald's error-bound inequalities. Byte-identical to case-06 except for how the expected values in tests/boundary-decision.test.ts were derived.",
+      "mustBe": ["pass", "pass-with-warnings"],
+      "rationale": "Genuinely independent evidence: the numeric constants come from theory, not from the implementation, and would fail against a wrong implementation."
+    },
+    "case-06": {
+      "scenario": "Matched pair, circular variant: the same corrected-boundary change and the same new test file with the same test names, but the expected values restate the implementation's own formula expression (Math.log((1-alpha)/beta)). The shared description claims independent derivation, which is false here. Ground-truth evidence independence is the ONLY difference from case-05.",
+      "mustBe": ["needs-evidence", "block"],
+      "rationale": "The test mirrors the implementation's formula, so it cannot have caught a wrong formula at authoring time — exactly how the historical defect's contemporaneous test passed. A checker that accepts case-05 must refuse case-06 to demonstrate it reads evidentiary value rather than surface structure."
+    }
+  }
+}

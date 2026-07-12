@@ -1,0 +1,81 @@
+[
+  {
+    "id": "case-01",
+    "dir": "/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-ptAUcx/case-01",
+    "baseSha": "a66f4e0d2f91da68b58d38785b38f0b5b9c9e1ab",
+    "headSha": "89225784c053ddf8443f242522deeb973ab4ed3e",
+    "changedFiles": [
+      ".gitignore",
+      "CLAUDE.md",
+      "README.md",
+      "docs/blog/stop-testing-agents-like-deterministic-code.md",
+      "docs/plans/2026-02-09-feat-cerberus-mvp-statistical-ci-cd-plan-deepened.md",
+      "docs/plans/2026-02-09-feat-cerberus-mvp-statistical-ci-cd-plan.md",
+      "package-lock.json",
+      "package.json",
+      "src/AGENTS.md",
+      "src/cli.ts",
+      "src/config.ts",
+      "src/contracts.ts",
+      "src/errors.ts",
+      "src/judges.ts",
+      "src/output.ts",
+      "src/runner.ts",
+      "src/stats.ts",
+      "src/types.ts",
+      "tests/config.test.ts",
+      "tests/contracts.test.ts",
+      "tests/e2e.test.ts",
+      "tests/fixtures/abort-config.yaml",
+      "tests/fixtures/agents/crash.js",
+      "tests/fixtures/agents/echo.js",
+      "tests/fixtures/agents/flaky.js",
+      "tests/fixtures/agents/slow.js",
+      "tests/fixtures/crash-config.yaml",
+      "tests/fixtures/flaky-config.yaml",
+      "tests/fixtures/invalid-config.yaml",
+      "tests/fixtures/json-output-config.yaml",
+      "tests/fixtures/multi-contract-config.yaml",
+      "tests/fixtures/scenarios/simple.yaml",
+      "tests/fixtures/timeout-config.yaml",
+      "tests/fixtures/valid-config.yaml",
+      "tests/judges.test.ts",
+      "tests/runner.test.ts",
+      "tests/stats.test.ts",
+      "tsconfig.json",
+      "tsup.config.ts",
+      "vitest.config.ts"
+    ]
+  },
+  {
+    "id": "case-02",
+    "dir": "/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-ptAUcx/case-02",
+    "baseSha": "bba8134c564351f9aae366393cd05c83bed431d1",
+    "headSha": "3f060923ded174a527d5b7ad9aebe000b29b3244",
+    "changedFiles": [
+      "src/stats.ts",
+      "tests/error-control.test.ts",
+      "tests/stats.test.ts"
+    ]
+  },
+  {
+    "id": "case-03",
+    "dir": "/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-ptAUcx/case-03",
+    "baseSha": "23b59703244e4b8aa204ca1f89a878bf195bafdf",
+    "headSha": "c139bf963f7188b57a3ed13e101e05e2d414d96f",
+    "changedFiles": [
+      "src/stats.ts",
+      "tests/stats.test.ts"
+    ]
+  },
+  {
+    "id": "case-04",
+    "dir": "/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-ptAUcx/case-04",
+    "baseSha": "23b59703244e4b8aa204ca1f89a878bf195bafdf",
+    "headSha": "81b0a7fd94191722206999c5e4bf0ed67dcc943f",
+    "changedFiles": [
+      "src/stats.ts",
+      "tests/interval-validation.test.ts"
+    ]
+  }
+]

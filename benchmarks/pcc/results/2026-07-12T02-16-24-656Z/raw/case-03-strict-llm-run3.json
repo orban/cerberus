@@ -1,0 +1,22 @@
+{
+  "fixture": "case-03",
+  "policy": "strict",
+  "mode": "llm",
+  "run": 3,
+  "model": "gpt-5.2",
+  "invocation": [
+    "check",
+    "66b8c11246b70861047b6cc57ab474a0f70da33b..893a8767711866c6271976e7a77689468df7da34",
+    "--json",
+    "--description-file",
+    "/Users/ryo/dev/cerberus/benchmarks/pcc/fixtures/case-03/description.md",
+    "--policy",
+    "/Users/ryo/dev/cerberus/benchmarks/pcc/fixtures/policies/strict.yaml",
+    "--model",
+    "gpt-5.2"
+  ],
+  "exitCode": 1,
+  "wallMs": 6126,
+  "stdout": "{\n  \"version\": 1,\n  \"range\": \"66b8c11246b70861047b6cc57ab474a0f70da33b...893a8767711866c6271976e7a77689468df7da34\",\n  \"verdict\": \"block\",\n  \"effectiveExitCode\": 1,\n  \"noChanges\": false,\n  \"reasons\": [\n    {\n      \"ruleId\": \"block_critical_claim_without_direct_evidence\",\n      \"message\": \"Material claim(s) without qualifying direct evidence: \\\"SPRT upper decision boundary is now computed as log((1 - beta) / alpha) (Wald fo\\\"; \\\"SPRT lower decision boundary is now computed as log(beta / (1 - alpha)) (Wald fo\\\"; \\\"For valid configurations with 0 < alpha < 1 and 0 < beta < 1, the computed bound\\\".\"\n    }\n  ],\n  \"claims\": [\n    {\n      \"id\": \"c1\",\n      \"text\": \"SPRT upper decision boundary is now computed as log((1 - beta) / alpha) (Wald formulation) instead of log((1 - alpha) / beta).\",\n      \"kind\": \"behavior-change\",\n      \"components\": [\n        \"src/stats.ts\"\n      ],\n      \"severityIfFalse\": \"high\",\n      \"confidence\": \"llm\",\n      \"status\": \"unsupported\",\n      \"evidence\": []\n    },\n    {\n      \"id\": \"c2\",\n      \"text\": \"SPRT lower decision boundary is now computed as log(beta / (1 - alpha)) (Wald formulation) instead of log(alpha / (1 - beta)).\",\n      \"kind\": \"behavior-change\",\n      \"components\": [\n        \"src/stats.ts\"\n      ],\n      \"severityIfFalse\": \"high\",\n      \"confidence\": \"llm\",\n      \"status\": \"unsupported\",\n      \"evidence\": []\n    },\n    {\n      \"id\": \"c3\",\n      \"text\": \"For valid configurations with 0 < alpha < 1 and 0 < beta < 1, the computed boundaries remain finite real numbers (no NaN/Infinity).\",\n      \"kind\": \"invariant-preserved\",\n      \"components\": [\n        \"src/stats.ts\"\n      ],\n      \"severityIfFalse\": \"high\",\n      \"confidence\": \"llm\",\n      \"status\": \"unsupported\",\n      \"evidence\": []\n    },\n    {\n      \"id\": \"c4\",\n      \"text\": \"The test suite now verifies the SPRT boundary formulas using the Wald convention: upperBoundary ≈ log((1 - beta) / alpha) and lowerBoundary ≈ log(beta / (1 - alpha)).\",\n      \"kind\": \"behavior-change\",\n      \"components\": [\n        \"tests/stats.test.ts\"\n      ],\n      \"severityIfFalse\": \"medium\",\n      \"confidence\": \"llm\",\n      \"status\": \"unsupported\",\n      \"evidence\": []\n    },\n    {\n      \"id\": \"c5\",\n      \"text\": \"Aside from the boundary constants A and B (and their logs), other SPRT state initialization and update behavior in stats.ts remains unchanged (intent unknown from provided diff).\",\n      \"kind\": \"invariant-preserved\",\n      \"components\": [\n        \"src/stats.ts\"\n      ],\n      \"severityIfFalse\": \"medium\",\n      \"confidence\": \"llm\",\n      \"status\": \"unsupported\",\n      \"evidence\": []\n    }\n  ],\n  \"findings\": [],\n  \"invariants\": [\n    {\n      \"name\": \"statistical-decision-core\",\n      \"description\": \"Changes to statistical decision logic require direct, independent test evidence.\",\n      \"affected\": true,\n      \"matchedFiles\": [\n        \"src/stats.ts\"\n      ],\n      \"requiresEvidence\": true,\n      \"evidenced\": false,\n      \"severity\": \"critical\"\n    }\n  ],\n  \"rollback\": {\n    \"relevant\": false,\n    \"detected\": false,\n    \"explanation\": \"No schema or migration changes.\"\n  },\n  \"override\": null,\n  \"durationMs\": 6057\n}\n",
+  "stderr": "Analyzing change range...\nResult persisted to /private/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-bde1Oz/case-03/.cerberus/checks/2026-07-12T02-23-16-112Z.json\n"
+}

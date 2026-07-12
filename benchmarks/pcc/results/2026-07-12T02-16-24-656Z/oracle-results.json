@@ -1,0 +1,357 @@
+{
+  "convention": "Lambda_n = P(data|H0)/P(data|H1); success pushes UP toward accept-H0",
+  "checks": [
+    {
+      "name": "[alpha=0.05, beta=0.20 (cerberus default: threshold .90, confidence .95)] derived != buggy in BOTH boundaries (asymmetry guard)",
+      "ok": true,
+      "detail": {
+        "derived": {
+          "upper": 1.5581446180465497,
+          "lower": -2.772588722239781
+        },
+        "buggy": {
+          "upper": 2.772588722239781,
+          "lower": -1.5581446180465497
+        }
+      }
+    },
+    {
+      "name": "[alpha=0.05, beta=0.20 (cerberus default: threshold .90, confidence .95)] derived boundaries: empirical Type I CI overlaps [0, alpha + 0.01]",
+      "ok": true,
+      "detail": {
+        "empirical": 0.0396,
+        "ci": {
+          "lower": 0.036984471537459956,
+          "upper": 0.04239235526579023
+        },
+        "alpha": 0.05
+      }
+    },
+    {
+      "name": "[alpha=0.05, beta=0.20 (cerberus default: threshold .90, confidence .95)] derived boundaries: empirical Type II CI overlaps [0, beta + 0.01]",
+      "ok": true,
+      "detail": {
+        "empirical": 0.19025,
+        "ci": {
+          "lower": 0.18487003086830342,
+          "upper": 0.19574893547032987
+        },
+        "beta": 0.2
+      }
+    },
+    {
+      "name": "[alpha=0.05, beta=0.20 (cerberus default: threshold .90, confidence .95)] buggy boundaries INFLATE Type I: CI lower bound > 2x alpha",
+      "ok": true,
+      "detail": {
+        "empirical": 0.154,
+        "ci": {
+          "lower": 0.14906408095542256,
+          "upper": 0.1590688079974979
+        },
+        "alpha": 0.05
+      }
+    },
+    {
+      "name": "[alpha=0.01, beta=0.20 (confidence .99)] derived != buggy in BOTH boundaries (asymmetry guard)",
+      "ok": true,
+      "detail": {
+        "derived": {
+          "upper": 1.5993875765805987,
+          "lower": -4.382026634673882
+        },
+        "buggy": {
+          "upper": 4.382026634673881,
+          "lower": -1.599387576580599
+        }
+      }
+    },
+    {
+      "name": "[alpha=0.01, beta=0.20 (confidence .99)] derived boundaries: empirical Type I CI overlaps [0, alpha + 0.01]",
+      "ok": true,
+      "detail": {
+        "empirical": 0.00805,
+        "ci": {
+          "lower": 0.006902549901626376,
+          "upper": 0.00938639437695513
+        },
+        "alpha": 0.01
+      }
+    },
+    {
+      "name": "[alpha=0.01, beta=0.20 (confidence .99)] derived boundaries: empirical Type II CI overlaps [0, beta + 0.01]",
+      "ok": true,
+      "detail": {
+        "empirical": 0.18635,
+        "ci": {
+          "lower": 0.18101385912381057,
+          "upper": 0.19180660509608394
+        },
+        "beta": 0.2
+      }
+    },
+    {
+      "name": "[alpha=0.01, beta=0.20 (confidence .99)] buggy boundaries INFLATE Type I: CI lower bound > 2x alpha",
+      "ok": true,
+      "detail": {
+        "empirical": 0.1568,
+        "ci": {
+          "lower": 0.15182664560577086,
+          "upper": 0.16190516794521842
+        },
+        "alpha": 0.01
+      }
+    }
+  ],
+  "params": [
+    {
+      "label": "alpha=0.05, beta=0.20 (cerberus default: threshold .90, confidence .95)",
+      "derived": {
+        "upper": 1.5581446180465497,
+        "lower": -2.772588722239781
+      },
+      "historicalBuggy": {
+        "upper": 2.772588722239781,
+        "lower": -1.5581446180465497
+      },
+      "terminal": {
+        "derived": {
+          "consecutiveSuccessesToAccept": 14,
+          "consecutiveFailuresToReject": 4
+        },
+        "buggy": {
+          "consecutiveSuccessesToAccept": 24,
+          "consecutiveFailuresToReject": 3
+        }
+      },
+      "monteCarlo": {
+        "derived": {
+          "atP0_typeI_is_rejectRate": {
+            "accept": 19208,
+            "reject": 792,
+            "undecided": 0,
+            "reps": 20000,
+            "acceptRate": 0.9604,
+            "rejectRate": 0.0396,
+            "undecidedRate": 0,
+            "meanN": 39.09605,
+            "rejectCI": {
+              "lower": 0.036984471537459956,
+              "upper": 0.04239235526579023
+            },
+            "acceptCI": {
+              "lower": 0.9576076447342099,
+              "upper": 0.9630155284625401
+            }
+          },
+          "atP1_typeII_is_acceptRate": {
+            "accept": 3805,
+            "reject": 16195,
+            "undecided": 0,
+            "reps": 20000,
+            "acceptRate": 0.19025,
+            "rejectRate": 0.80975,
+            "undecidedRate": 0,
+            "meanN": 48.5861,
+            "rejectCI": {
+              "lower": 0.8042510645296701,
+              "upper": 0.8151299691316967
+            },
+            "acceptCI": {
+              "lower": 0.18487003086830342,
+              "upper": 0.19574893547032987
+            }
+          }
+        },
+        "buggy": {
+          "atP0_typeI_is_rejectRate": {
+            "accept": 16920,
+            "reject": 3080,
+            "undecided": 0,
+            "reps": 20000,
+            "acceptRate": 0.846,
+            "rejectRate": 0.154,
+            "undecidedRate": 0,
+            "meanN": 57.7425,
+            "rejectCI": {
+              "lower": 0.14906408095542256,
+              "upper": 0.1590688079974979
+            },
+            "acceptCI": {
+              "lower": 0.8409311920025021,
+              "upper": 0.8509359190445774
+            }
+          },
+          "atP1_typeII_is_acceptRate": {
+            "accept": 1016,
+            "reject": 18984,
+            "undecided": 0,
+            "reps": 20000,
+            "acceptRate": 0.0508,
+            "rejectRate": 0.9492,
+            "undecidedRate": 0,
+            "meanN": 35.5817,
+            "rejectCI": {
+              "lower": 0.9460695138388118,
+              "upper": 0.9521579609656627
+            },
+            "acceptCI": {
+              "lower": 0.0478420390343373,
+              "upper": 0.053930486161188285
+            }
+          }
+        },
+        "indifferenceZone_p085": {
+          "accept": 12062,
+          "reject": 7938,
+          "undecided": 0,
+          "reps": 20000,
+          "acceptRate": 0.6031,
+          "rejectRate": 0.3969,
+          "undecidedRate": 0,
+          "meanN": 60.776,
+          "rejectCI": {
+            "lower": 0.39013981821226656,
+            "upper": 0.4036997796231267
+          },
+          "acceptCI": {
+            "lower": 0.5963002203768732,
+            "upper": 0.6098601817877334
+          }
+        }
+      }
+    },
+    {
+      "label": "alpha=0.01, beta=0.20 (confidence .99)",
+      "derived": {
+        "upper": 1.5993875765805987,
+        "lower": -4.382026634673882
+      },
+      "historicalBuggy": {
+        "upper": 4.382026634673881,
+        "lower": -1.599387576580599
+      },
+      "terminal": {
+        "derived": {
+          "consecutiveSuccessesToAccept": 14,
+          "consecutiveFailuresToReject": 7
+        },
+        "buggy": {
+          "consecutiveSuccessesToAccept": 38,
+          "consecutiveFailuresToReject": 3
+        }
+      },
+      "monteCarlo": {
+        "derived": {
+          "atP0_typeI_is_rejectRate": {
+            "accept": 19839,
+            "reject": 161,
+            "undecided": 0,
+            "reps": 20000,
+            "acceptRate": 0.99195,
+            "rejectRate": 0.00805,
+            "undecidedRate": 0,
+            "meanN": 43.98345,
+            "rejectCI": {
+              "lower": 0.006902549901626376,
+              "upper": 0.00938639437695513
+            },
+            "acceptCI": {
+              "lower": 0.9906136056230449,
+              "upper": 0.9930974500983737
+            }
+          },
+          "atP1_typeII_is_acceptRate": {
+            "accept": 3727,
+            "reject": 16273,
+            "undecided": 0,
+            "reps": 20000,
+            "acceptRate": 0.18635,
+            "rejectRate": 0.81365,
+            "undecidedRate": 0,
+            "meanN": 78.10865,
+            "rejectCI": {
+              "lower": 0.8081933949039161,
+              "upper": 0.8189861408761895
+            },
+            "acceptCI": {
+              "lower": 0.18101385912381057,
+              "upper": 0.19180660509608394
+            }
+          }
+        },
+        "buggy": {
+          "atP0_typeI_is_rejectRate": {
+            "accept": 16864,
+            "reject": 3136,
+            "undecided": 0,
+            "reps": 20000,
+            "acceptRate": 0.8432,
+            "rejectRate": 0.1568,
+            "undecidedRate": 0,
+            "meanN": 94.2219,
+            "rejectCI": {
+              "lower": 0.15182664560577086,
+              "upper": 0.16190516794521842
+            },
+            "acceptCI": {
+              "lower": 0.8380948320547815,
+              "upper": 0.848173354394229
+            }
+          },
+          "atP1_typeII_is_acceptRate": {
+            "accept": 197,
+            "reject": 19803,
+            "undecided": 0,
+            "reps": 20000,
+            "acceptRate": 0.00985,
+            "rejectRate": 0.99015,
+            "undecidedRate": 0,
+            "meanN": 40.5673,
+            "rejectCI": {
+              "lower": 0.9886840925091636,
+              "upper": 0.9914276545420677
+            },
+            "acceptCI": {
+              "lower": 0.008572345457932248,
+              "upper": 0.011315907490836377
+            }
+          }
+        },
+        "indifferenceZone_p085": {
+          "accept": 13539,
+          "reject": 6461,
+          "undecided": 0,
+          "reps": 20000,
+          "acceptRate": 0.67695,
+          "rejectRate": 0.32305,
+          "undecidedRate": 0,
+          "meanN": 98.6453,
+          "rejectCI": {
+            "lower": 0.31660345068364193,
+            "upper": 0.32956451087768546
+          },
+          "acceptCI": {
+            "lower": 0.6704354891223147,
+            "upper": 0.6833965493163582
+          }
+        }
+      }
+    }
+  ],
+  "fixtureConstants": {
+    "acceptAfterConsecutiveSuccesses_alpha05": 14,
+    "rejectAfterConsecutiveFailures_alpha05": 4,
+    "acceptAfterConsecutiveSuccesses_alpha01": 14,
+    "rejectAfterConsecutiveFailures_alpha01": 7,
+    "wilson_8_of_10_at_95": {
+      "lower": 0.4901624691221323,
+      "upper": 0.9433178490622331
+    },
+    "wilson_90_of_100_at_99": {
+      "lower": 0.796249276612646,
+      "upper": 0.9539741842165782
+    }
+  },
+  "failures": [],
+  "verdict": "ORACLE_CONFIRMED"
+}

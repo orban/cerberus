@@ -1,0 +1,21 @@
+{
+  "fixture": "case-02",
+  "policy": "strict",
+  "mode": "det",
+  "run": 3,
+  "model": null,
+  "invocation": [
+    "check",
+    "bba8134c564351f9aae366393cd05c83bed431d1..3f060923ded174a527d5b7ad9aebe000b29b3244",
+    "--json",
+    "--description-file",
+    "/Users/ryo/dev/cerberus/benchmarks/pcc/fixtures/case-02/description.md",
+    "--policy",
+    "/Users/ryo/dev/cerberus/benchmarks/pcc/fixtures/policies/strict.yaml",
+    "--no-llm"
+  ],
+  "exitCode": 3,
+  "wallMs": 102,
+  "stdout": "{\n  \"version\": 1,\n  \"range\": \"bba8134c564351f9aae366393cd05c83bed431d1...3f060923ded174a527d5b7ad9aebe000b29b3244\",\n  \"verdict\": \"needs-evidence\",\n  \"effectiveExitCode\": 3,\n  \"noChanges\": false,\n  \"reasons\": [\n    {\n      \"ruleId\": \"needs_evidence_invariant\",\n      \"message\": \"Invariant \\\"statistical-decision-core\\\" is affected (src/stats.ts) and requires evidence, but none qualifies.\"\n    }\n  ],\n  \"claims\": [],\n  \"findings\": [],\n  \"invariants\": [\n    {\n      \"name\": \"statistical-decision-core\",\n      \"description\": \"Changes to statistical decision logic require direct, independent test evidence.\",\n      \"affected\": true,\n      \"matchedFiles\": [\n        \"src/stats.ts\"\n      ],\n      \"requiresEvidence\": true,\n      \"evidenced\": false,\n      \"severity\": \"critical\"\n    }\n  ],\n  \"rollback\": {\n    \"relevant\": false,\n    \"detected\": false,\n    \"explanation\": \"No schema or migration changes.\"\n  },\n  \"override\": null,\n  \"durationMs\": 42\n}\n",
+  "stderr": "Analyzing change range...\nResult persisted to /private/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-ptAUcx/case-02/.cerberus/checks/2026-07-12T01-41-08-042Z.json\n"
+}

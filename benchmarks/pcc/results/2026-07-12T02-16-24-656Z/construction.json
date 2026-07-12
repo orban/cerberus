@@ -1,0 +1,103 @@
+[
+  {
+    "id": "case-01",
+    "dir": "/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-bde1Oz/case-01",
+    "baseSha": "d68969086d181c8561b1ee66ff89c7bba22d1f32",
+    "headSha": "ac9df904cf490a5c32e066a101d14767fd805785",
+    "changedFiles": [
+      ".gitignore",
+      "CLAUDE.md",
+      "README.md",
+      "docs/blog/stop-testing-agents-like-deterministic-code.md",
+      "docs/plans/2026-02-09-feat-cerberus-mvp-statistical-ci-cd-plan-deepened.md",
+      "docs/plans/2026-02-09-feat-cerberus-mvp-statistical-ci-cd-plan.md",
+      "package-lock.json",
+      "package.json",
+      "src/AGENTS.md",
+      "src/cli.ts",
+      "src/config.ts",
+      "src/contracts.ts",
+      "src/errors.ts",
+      "src/judges.ts",
+      "src/output.ts",
+      "src/runner.ts",
+      "src/stats.ts",
+      "src/types.ts",
+      "tests/config.test.ts",
+      "tests/contracts.test.ts",
+      "tests/e2e.test.ts",
+      "tests/fixtures/abort-config.yaml",
+      "tests/fixtures/agents/crash.js",
+      "tests/fixtures/agents/echo.js",
+      "tests/fixtures/agents/flaky.js",
+      "tests/fixtures/agents/slow.js",
+      "tests/fixtures/crash-config.yaml",
+      "tests/fixtures/flaky-config.yaml",
+      "tests/fixtures/invalid-config.yaml",
+      "tests/fixtures/json-output-config.yaml",
+      "tests/fixtures/multi-contract-config.yaml",
+      "tests/fixtures/scenarios/simple.yaml",
+      "tests/fixtures/timeout-config.yaml",
+      "tests/fixtures/valid-config.yaml",
+      "tests/judges.test.ts",
+      "tests/runner.test.ts",
+      "tests/stats.test.ts",
+      "tsconfig.json",
+      "tsup.config.ts",
+      "vitest.config.ts"
+    ]
+  },
+  {
+    "id": "case-02",
+    "dir": "/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-bde1Oz/case-02",
+    "baseSha": "8f907d1a446840ab10f64e42958c8380ff405b34",
+    "headSha": "4cb85bfae0b7be5461e5718ef7465bdbfa16a96f",
+    "changedFiles": [
+      "src/stats.ts",
+      "tests/error-control.test.ts",
+      "tests/stats.test.ts"
+    ]
+  },
+  {
+    "id": "case-03",
+    "dir": "/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-bde1Oz/case-03",
+    "baseSha": "66b8c11246b70861047b6cc57ab474a0f70da33b",
+    "headSha": "893a8767711866c6271976e7a77689468df7da34",
+    "changedFiles": [
+      "src/stats.ts",
+      "tests/stats.test.ts"
+    ]
+  },
+  {
+    "id": "case-04",
+    "dir": "/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-bde1Oz/case-04",
+    "baseSha": "66b8c11246b70861047b6cc57ab474a0f70da33b",
+    "headSha": "38d14d806b972f91fd7fd73780c42a42a99edccb",
+    "changedFiles": [
+      "src/stats.ts",
+      "tests/interval-validation.test.ts"
+    ]
+  },
+  {
+    "id": "case-05",
+    "dir": "/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-bde1Oz/case-05",
+    "baseSha": "8f907d1a446840ab10f64e42958c8380ff405b34",
+    "headSha": "004c0ba49473206aafc16eeab24bf2775a21e40d",
+    "changedFiles": [
+      "src/stats.ts",
+      "tests/boundary-decision.test.ts",
+      "tests/stats.test.ts"
+    ]
+  },
+  {
+    "id": "case-06",
+    "dir": "/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-bde1Oz/case-06",
+    "baseSha": "8f907d1a446840ab10f64e42958c8380ff405b34",
+    "headSha": "f6e497a7ad8deebeb111eedb36077c8bfd277732",
+    "changedFiles": [
+      "src/stats.ts",
+      "tests/boundary-decision.test.ts",
+      "tests/stats.test.ts"
+    ]
+  }
+]

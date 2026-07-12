@@ -1,0 +1,22 @@
+{
+  "fixture": "case-03",
+  "policy": "strict",
+  "mode": "llm",
+  "run": 3,
+  "model": "gpt-5.2",
+  "invocation": [
+    "check",
+    "23b59703244e4b8aa204ca1f89a878bf195bafdf..c139bf963f7188b57a3ed13e101e05e2d414d96f",
+    "--json",
+    "--description-file",
+    "/Users/ryo/dev/cerberus/benchmarks/pcc/fixtures/case-03/description.md",
+    "--policy",
+    "/Users/ryo/dev/cerberus/benchmarks/pcc/fixtures/policies/strict.yaml",
+    "--model",
+    "gpt-5.2"
+  ],
+  "exitCode": 1,
+  "wallMs": 6518,
+  "stdout": "{\n  \"version\": 1,\n  \"range\": \"23b59703244e4b8aa204ca1f89a878bf195bafdf...c139bf963f7188b57a3ed13e101e05e2d414d96f\",\n  \"verdict\": \"block\",\n  \"effectiveExitCode\": 1,\n  \"noChanges\": false,\n  \"reasons\": [\n    {\n      \"ruleId\": \"block_critical_claim_without_direct_evidence\",\n      \"message\": \"Material claim(s) without qualifying direct evidence: \\\"SPRT boundary constants are computed using Wald’s standard formulation: A = (1 -\\\"; \\\"The logged decision thresholds exposed by the SPRT state change accordingly: upp\\\"; \\\"No other SPRT behavior is intended to change beyond the boundary formula alignme\\\".\"\n    }\n  ],\n  \"claims\": [\n    {\n      \"id\": \"c1\",\n      \"text\": \"SPRT boundary constants are computed using Wald’s standard formulation: A = (1 - beta) / alpha (upper boundary) and B = beta / (1 - alpha) (lower boundary), rather than the previous swapped formulas.\",\n      \"kind\": \"behavior-change\",\n      \"components\": [\n        \"src/stats.ts\"\n      ],\n      \"severityIfFalse\": \"high\",\n      \"confidence\": \"llm\",\n      \"status\": \"unsupported\",\n      \"evidence\": []\n    },\n    {\n      \"id\": \"c2\",\n      \"text\": \"The logged decision thresholds exposed by the SPRT state change accordingly: upperBoundary equals log((1 - beta) / alpha) and lowerBoundary equals log(beta / (1 - alpha)).\",\n      \"kind\": \"behavior-change\",\n      \"components\": [\n        \"src/stats.ts\"\n      ],\n      \"severityIfFalse\": \"high\",\n      \"confidence\": \"llm\",\n      \"status\": \"unsupported\",\n      \"evidence\": []\n    },\n    {\n      \"id\": \"c3\",\n      \"text\": \"Boundary unit tests validate the Wald-formulation thresholds (upperBoundary and lowerBoundary) using the updated log expressions, replacing the prior convention.\",\n      \"kind\": \"behavior-change\",\n      \"components\": [\n        \"tests/stats.test.ts\"\n      ],\n      \"severityIfFalse\": \"medium\",\n      \"confidence\": \"llm\",\n      \"status\": \"unsupported\",\n      \"evidence\": []\n    },\n    {\n      \"id\": \"c4\",\n      \"text\": \"No other SPRT behavior is intended to change beyond the boundary formula alignment; intent unknown for any downstream effects on accept/reject decisions that depend on these thresholds.\",\n      \"kind\": \"behavior-change\",\n      \"components\": [\n        \"src/stats.ts\"\n      ],\n      \"severityIfFalse\": \"high\",\n      \"confidence\": \"llm\",\n      \"status\": \"unsupported\",\n      \"evidence\": []\n    },\n    {\n      \"id\": \"c5\",\n      \"text\": \"The code continues to compute boundaries as natural logarithms of A and B (i.e., using Math.log on the boundary ratios).\",\n      \"kind\": \"invariant-preserved\",\n      \"components\": [\n        \"src/stats.ts\",\n        \"tests/stats.test.ts\"\n      ],\n      \"severityIfFalse\": \"medium\",\n      \"confidence\": \"llm\",\n      \"status\": \"unsupported\",\n      \"evidence\": []\n    }\n  ],\n  \"findings\": [],\n  \"invariants\": [\n    {\n      \"name\": \"statistical-decision-core\",\n      \"description\": \"Changes to statistical decision logic require direct, independent test evidence.\",\n      \"affected\": true,\n      \"matchedFiles\": [\n        \"src/stats.ts\"\n      ],\n      \"requiresEvidence\": true,\n      \"evidenced\": false,\n      \"severity\": \"critical\"\n    }\n  ],\n  \"rollback\": {\n    \"relevant\": false,\n    \"detected\": false,\n    \"explanation\": \"No schema or migration changes.\"\n  },\n  \"override\": null,\n  \"durationMs\": 6448\n}\n",
+  "stderr": "Analyzing change range...\nResult persisted to /private/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-ptAUcx/case-03/.cerberus/checks/2026-07-12T01-42-55-591Z.json\n"
+}

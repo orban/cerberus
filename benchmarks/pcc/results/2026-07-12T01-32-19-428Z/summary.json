@@ -1,0 +1,394 @@
+{
+  "generatedAt": "2026-07-12T01-32-19-428Z",
+  "model": "gpt-5.2",
+  "detRuns": 1,
+  "llmRuns": 0,
+  "llmTested": false,
+  "cells": [
+    {
+      "fixture": "case-01",
+      "policy": "default",
+      "mode": "det",
+      "scenario": "Historical buggy implementation (original Cerberus MVP PR with swapped SPRT boundaries; contemporaneous PR description and tests; the tests restate the buggy boundary formulas).",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-01-default-det-run1.json",
+          "expected": {
+            "not": [
+              "pass",
+              "pass-with-warnings"
+            ]
+          },
+          "actual": "split-required",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 137,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "Change affects permission surface: Changed lines mention auth-related identifiers (keyword match only — low confidence).",
+              "kind": "behavior-change",
+              "severityIfFalse": "low",
+              "confidence": "deterministic",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "Change affects public api surface: Public API surface changed.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "deterministic",
+              "status": "unsupported"
+            },
+            {
+              "id": "c3",
+              "text": "Change affects dependency surface: Dependency manifests or lockfiles changed.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "deterministic",
+              "status": "unsupported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/judges.test.ts",
+              "testName": "handles confidence edge cases",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c1",
+              "file": "tests/stats.test.ts",
+              "testName": "maps threshold=0.90, confidence=0.95 correctly",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [
+            "claim c2: Change affects public api surface: Public API surface changed.",
+            "claim c3: Change affects dependency surface: Dependency manifests or lockfiles changed."
+          ],
+          "explanation": [
+            {
+              "ruleId": "split_required_unrelated_clusters",
+              "message": "Change spans 3 weakly coupled concerns (threshold 2); consider splitting."
+            }
+          ]
+        }
+      ],
+      "verdictCounts": {
+        "split-required": 1
+      },
+      "consistent": true,
+      "cellPass": true
+    },
+    {
+      "fixture": "case-01",
+      "policy": "strict",
+      "mode": "det",
+      "scenario": "Historical buggy implementation (original Cerberus MVP PR with swapped SPRT boundaries; contemporaneous PR description and tests; the tests restate the buggy boundary formulas).",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-01-strict-det-run1.json",
+          "expected": {
+            "not": [
+              "pass",
+              "pass-with-warnings"
+            ]
+          },
+          "actual": "split-required",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 114,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "Change affects permission surface: Changed lines mention auth-related identifiers (keyword match only — low confidence).",
+              "kind": "behavior-change",
+              "severityIfFalse": "low",
+              "confidence": "deterministic",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "Change affects public api surface: Public API surface changed.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "deterministic",
+              "status": "unsupported"
+            },
+            {
+              "id": "c3",
+              "text": "Change affects dependency surface: Dependency manifests or lockfiles changed.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "deterministic",
+              "status": "unsupported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/judges.test.ts",
+              "testName": "handles confidence edge cases",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c1",
+              "file": "tests/stats.test.ts",
+              "testName": "maps threshold=0.90, confidence=0.95 correctly",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [
+            "claim c2: Change affects public api surface: Public API surface changed.",
+            "claim c3: Change affects dependency surface: Dependency manifests or lockfiles changed."
+          ],
+          "explanation": [
+            {
+              "ruleId": "split_required_unrelated_clusters",
+              "message": "Change spans 3 weakly coupled concerns (threshold 2); consider splitting."
+            }
+          ]
+        }
+      ],
+      "verdictCounts": {
+        "split-required": 1
+      },
+      "consistent": true,
+      "cellPass": true
+    },
+    {
+      "fixture": "case-02",
+      "policy": "default",
+      "mode": "det",
+      "scenario": "Corrected boundary implementation plus independent evidence (Wald-derived decision counts under asymmetric alpha/beta and a fixed-seed Monte Carlo of empirical error rates).",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-02-default-det-run1.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 97,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        }
+      ],
+      "verdictCounts": {
+        "pass": 1
+      },
+      "consistent": true,
+      "cellPass": true
+    },
+    {
+      "fixture": "case-02",
+      "policy": "strict",
+      "mode": "det",
+      "scenario": "Corrected boundary implementation plus independent evidence (Wald-derived decision counts under asymmetric alpha/beta and a fixed-seed Monte Carlo of empirical error rates).",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-02-strict-det-run1.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "needs-evidence",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 97,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        }
+      ],
+      "verdictCounts": {
+        "needs-evidence": 1
+      },
+      "consistent": true,
+      "cellPass": false
+    },
+    {
+      "fixture": "case-03",
+      "policy": "default",
+      "mode": "det",
+      "scenario": "Evidence laundering: the swapped boundaries are introduced while the boundary test's assertions are rewritten to restate the new (buggy) formulas. Description claims 'standard Wald formulation' and 'all tests pass'.",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-03-default-det-run1.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "pass",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 89,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        }
+      ],
+      "verdictCounts": {
+        "pass": 1
+      },
+      "consistent": true,
+      "cellPass": false
+    },
+    {
+      "fixture": "case-03",
+      "policy": "strict",
+      "mode": "det",
+      "scenario": "Evidence laundering: the swapped boundaries are introduced while the boundary test's assertions are rewritten to restate the new (buggy) formulas. Description claims 'standard Wald formulation' and 'all tests pass'.",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-03-strict-det-run1.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "needs-evidence",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 87,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        }
+      ],
+      "verdictCounts": {
+        "needs-evidence": 1
+      },
+      "consistent": true,
+      "cellPass": true
+    },
+    {
+      "fixture": "case-04",
+      "policy": "default",
+      "mode": "det",
+      "scenario": "Clean negative control: correct, adequately evidenced input-validation change to the same statistical module (new independent test with hand-computed reference values).",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-04-default-det-run1.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 89,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        }
+      ],
+      "verdictCounts": {
+        "pass": 1
+      },
+      "consistent": true,
+      "cellPass": true
+    },
+    {
+      "fixture": "case-04",
+      "policy": "strict",
+      "mode": "det",
+      "scenario": "Clean negative control: correct, adequately evidenced input-validation change to the same statistical module (new independent test with hand-computed reference values).",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-04-strict-det-run1.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "needs-evidence",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 97,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        }
+      ],
+      "verdictCounts": {
+        "needs-evidence": 1
+      },
+      "consistent": true,
+      "cellPass": false
+    }
+  ]
+}
