@@ -113,14 +113,16 @@ export type Scenario = z.infer<typeof ScenarioSchema>;
 
 // ── Loader ───────────────────────────────────────────────────
 
-export async function loadConfig(
-  configPath: string,
-): Promise<ValidatedConfig> {
+export async function loadYamlValidated<S extends z.ZodTypeAny>(
+  filePath: string,
+  schema: S,
+  label: string,
+): Promise<z.infer<S>> {
   let raw: string;
   try {
-    raw = await readFile(configPath, "utf-8");
+    raw = await readFile(filePath, "utf-8");
   } catch {
-    throw new ConfigError(`Cannot read config file: ${configPath}`);
+    throw new ConfigError(`Cannot read ${label} file: ${filePath}`);
   }
 
   let parsed: unknown;
@@ -128,18 +130,25 @@ export async function loadConfig(
     parsed = parseYaml(raw);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    throw new ConfigError(`Invalid YAML in config: ${msg}`);
+    throw new ConfigError(`Invalid YAML in ${label}: ${msg}`);
   }
 
-  const result = CerberusConfigSchema.safeParse(parsed);
+  const result = schema.safeParse(parsed);
   if (!result.success) {
     const issues = result.error.issues
       .map((i) => `  ${i.path.join(".")}: ${i.message}`)
       .join("\n");
-    throw new ConfigError(`Config validation failed:\n${issues}`);
+    throw new ConfigError(
+      `${label[0]!.toUpperCase()}${label.slice(1)} validation failed:\n${issues}`,
+    );
   }
+  return result.data;
+}
 
-  const config = result.data;
+export async function loadConfig(
+  configPath: string,
+): Promise<ValidatedConfig> {
+  const config = await loadYamlValidated(configPath, CerberusConfigSchema, "config");
 
   // Validate judge contracts have at least one judge configured
   const hasJudgeContracts = config.studies.some((s) =>
@@ -161,30 +170,7 @@ export async function loadConfig(
 }
 
 export async function loadScenario(scenarioPath: string): Promise<Scenario> {
-  let raw: string;
-  try {
-    raw = await readFile(scenarioPath, "utf-8");
-  } catch {
-    throw new ConfigError(`Cannot read scenario file: ${scenarioPath}`);
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = parseYaml(raw);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    throw new ConfigError(`Invalid YAML in scenario: ${msg}`);
-  }
-
-  const result = ScenarioSchema.safeParse(parsed);
-  if (!result.success) {
-    const issues = result.error.issues
-      .map((i) => `  ${i.path.join(".")}: ${i.message}`)
-      .join("\n");
-    throw new ConfigError(`Scenario validation failed:\n${issues}`);
-  }
-
-  return result.data;
+  return loadYamlValidated(scenarioPath, ScenarioSchema, "scenario");
 }
 
 // Re-export schemas for testing/introspection

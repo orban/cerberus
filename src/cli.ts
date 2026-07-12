@@ -115,9 +115,9 @@ program
         const { runReplay } = await import("./pcc/replay.js");
         const exitCode = await runReplay({
           cwd,
-          ...(options.replay !== undefined ? { rangesFile: options.replay } : {}),
-          ...(options.replayMerges !== undefined ? { merges: Number(options.replayMerges) } : {}),
-          ...(policyPath !== undefined ? { policyPath } : {}),
+          rangesFile: options.replay,
+          merges: options.replayMerges !== undefined ? Number(options.replayMerges) : undefined,
+          policyPath,
         });
         process.exit(exitCode);
       }
@@ -128,15 +128,15 @@ program
       process.stderr.write("Analyzing change range...\n");
       const result = await runCheck({
         cwd,
-        ...(range !== undefined ? { range } : {}),
-        ...(options.base !== undefined ? { base: options.base } : {}),
-        ...(description !== undefined ? { description } : {}),
-        ...(policyPath !== undefined ? { policyPath } : {}),
+        range,
+        base: options.base,
+        description,
+        policyPath,
         noLlm: !options.llm,
-        ...(options.model !== undefined ? { model: options.model } : {}),
+        model: options.model,
         llmContent: options.llmContent,
-        ...(options.advisory !== undefined ? { advisory: options.advisory } : {}),
-        ...(options.override !== undefined ? { override: options.override } : {}),
+        advisory: options.advisory,
+        override: options.override,
       });
 
       const json = renderJson(result);

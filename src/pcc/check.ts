@@ -26,6 +26,8 @@ export interface CheckOptions {
   readonly llmContent?: LlmContentMode;
   readonly advisory?: boolean;
   readonly override?: string;
+  // Repo test inventory, injectable so batch callers (replay) compute it once.
+  readonly repoTestFiles?: readonly string[];
   readonly callModel?: ProviderFn;
   readonly warn?: (message: string) => void;
 }
@@ -61,9 +63,9 @@ export async function runCheck(options: CheckOptions): Promise<CheckResult> {
 
   const changeSet = await collectChangeSet({
     cwd: options.cwd,
-    ...(options.range !== undefined ? { range: options.range } : {}),
-    ...(options.base !== undefined ? { base: options.base } : {}),
-    ...(options.description !== undefined ? { description: options.description } : {}),
+    range: options.range,
+    base: options.base,
+    description: options.description,
   });
 
   // An empty range short-circuits to an explicit pass — never a silent green
@@ -93,14 +95,14 @@ export async function runCheck(options: CheckOptions): Promise<CheckResult> {
   });
 
   const claims = await generateClaims(changeSet, detection.findings, {
-    ...(options.noLlm !== undefined ? { noLlm: options.noLlm } : {}),
-    ...(options.model !== undefined ? { model: options.model } : {}),
-    ...(options.llmContent !== undefined ? { llmContent: options.llmContent } : {}),
-    ...(options.callModel !== undefined ? { callModel: options.callModel } : {}),
-    ...(options.warn !== undefined ? { warn: options.warn } : {}),
+    noLlm: options.noLlm,
+    model: options.model,
+    llmContent: options.llmContent,
+    callModel: options.callModel,
+    warn: options.warn,
   });
 
-  const repoTests = await listRepoTestFiles(options.cwd);
+  const repoTests = options.repoTestFiles ?? (await listRepoTestFiles(options.cwd));
   const evaluated = mapEvidence(changeSet, claims, repoTests);
   const invariants = evaluateInvariants(policy, changeSet, evaluated);
 
@@ -130,7 +132,7 @@ export async function runCheck(options: CheckOptions): Promise<CheckResult> {
     invariants,
     rollback: detection.rollback,
     noChanges: false,
-    ...(overrideRecord !== undefined ? { override: overrideRecord } : {}),
+    override: overrideRecord,
     durationMs: performance.now() - start,
   };
 }

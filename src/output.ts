@@ -172,13 +172,17 @@ export function writeJsonOutput(result: SuiteResult): string {
 
 // ── Result persistence ────────────────────────────────────────
 
-export async function persistResult(result: SuiteResult): Promise<string> {
-  const dir = join(".cerberus", "runs");
+export async function persistTimestampedJson(
+  dir: string,
+  json: string,
+): Promise<string> {
   await mkdir(dir, { recursive: true });
-
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const filePath = join(dir, `${timestamp}.json`);
-  const json = writeJsonOutput(result);
   await writeFile(filePath, json + "\n", "utf-8");
   return filePath;
+}
+
+export async function persistResult(result: SuiteResult): Promise<string> {
+  return persistTimestampedJson(join(".cerberus", "runs"), writeJsonOutput(result));
 }

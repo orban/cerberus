@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { TrialOutput } from "./types.js";
 import type { JudgeContractConfig, JudgeProviderConfig, Scenario } from "./config.js";
-import { getProvider, getEnvVar, type ProviderFn } from "./providers.js";
+import { getProvider, getEnvVar, parseJsonResponse, type Provider } from "./providers.js";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -72,43 +72,13 @@ Respond with ONLY a JSON object in this exact format:
 // ── Verdict parsing ──────────────────────────────────────────
 
 function parseVerdict(raw: string): JudgeVerdict {
-  // Strategy 1: Direct JSON parse
-  try {
-    const parsed = JudgeResponseSchema.parse(JSON.parse(raw));
-    return parsed;
-  } catch {
-    // continue to next strategy
-  }
-
-  // Strategy 2: Extract JSON from code block
-  const codeBlockMatch = raw.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-  if (codeBlockMatch?.[1]) {
-    try {
-      const parsed = JudgeResponseSchema.parse(JSON.parse(codeBlockMatch[1]));
-      return parsed;
-    } catch {
-      // continue to next strategy
-    }
-  }
-
-  // Strategy 3: Find first { ... } block
-  const braceMatch = raw.match(/\{[\s\S]*?\}/);
-  if (braceMatch?.[0]) {
-    try {
-      const parsed = JudgeResponseSchema.parse(JSON.parse(braceMatch[0]));
-      return parsed;
-    } catch {
-      // fall through
-    }
-  }
-
-  throw new Error(`Could not parse judge verdict from response: ${raw.slice(0, 200)}`);
+  return parseJsonResponse(raw, JudgeResponseSchema, /\{[\s\S]*?\}/, "judge verdict");
 }
 
 // ── Panel evaluation ─────────────────────────────────────────
 
 async function callJudgeWithRetry(
-  provider: { call: ProviderFn; name: string },
+  provider: Provider,
   prompt: string,
   model: string,
 ): Promise<JudgeVerdict> {
@@ -143,7 +113,7 @@ export async function evaluateWithPanel(
   const prompt = buildPrompt(output, contract, scenario);
 
   // Select judges for this panel (cycle through available judges)
-  const panelJudges: Array<{ model: string; provider: { call: ProviderFn; name: string } }> = [];
+  const panelJudges: Array<{ model: string; provider: Provider }> = [];
 
   for (let i = 0; i < panelSize; i++) {
     const judge = judges[i % judges.length]!;

@@ -3,7 +3,7 @@ import { EXIT_CODE } from "../types.js";
 import { CerberusError, ConfigError } from "../errors.js";
 import type { CheckResult, CheckVerdict } from "./types.js";
 import { runCheck } from "./check.js";
-import { runGit } from "./git.js";
+import { listRepoTestFiles, runGit } from "./git.js";
 import { persistCheck } from "./report.js";
 
 // Historical replay (PRD §17 Phase 0): run the analysis over past ranges in
@@ -62,6 +62,8 @@ async function resolveRanges(options: ReplayOptions): Promise<string[]> {
 
 export async function replay(options: ReplayOptions): Promise<ReplayRow[]> {
   const ranges = await resolveRanges(options);
+  // The working tree never changes between ranges — inventory tests once.
+  const repoTestFiles = await listRepoTestFiles(options.cwd);
   const rows: ReplayRow[] = [];
 
   for (const range of ranges) {
@@ -70,7 +72,8 @@ export async function replay(options: ReplayOptions): Promise<ReplayRow[]> {
         cwd: options.cwd,
         range,
         noLlm: true,
-        ...(options.policyPath !== undefined ? { policyPath: options.policyPath } : {}),
+        policyPath: options.policyPath,
+        repoTestFiles,
       });
       await persistCheck(result, options.cwd);
       rows.push({ range, verdict: result.verdict, result });

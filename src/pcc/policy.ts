@@ -1,7 +1,5 @@
-import { readFile } from "node:fs/promises";
 import { z } from "zod";
-import { parse as parseYaml } from "yaml";
-import { ConfigError } from "../errors.js";
+import { loadYamlValidated } from "../config.js";
 import type {
   ChangeSet,
   CheckVerdict,
@@ -43,34 +41,11 @@ const PolicySchema = z.object({
 });
 
 export type PolicyConfig = z.infer<typeof PolicySchema>;
-export type InvariantConfig = z.infer<typeof InvariantSchema>;
 
 export const DEFAULT_POLICY: PolicyConfig = PolicySchema.parse({ version: 1 });
 
 export async function loadPolicy(path: string): Promise<PolicyConfig> {
-  let raw: string;
-  try {
-    raw = await readFile(path, "utf-8");
-  } catch {
-    throw new ConfigError(`Cannot read policy file: ${path}`);
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = parseYaml(raw);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    throw new ConfigError(`Invalid YAML in policy: ${msg}`);
-  }
-
-  const result = PolicySchema.safeParse(parsed);
-  if (!result.success) {
-    const issues = result.error.issues
-      .map((i) => `  ${i.path.join(".")}: ${i.message}`)
-      .join("\n");
-    throw new ConfigError(`Policy validation failed:\n${issues}`);
-  }
-  return result.data;
+  return loadYamlValidated(path, PolicySchema, "policy");
 }
 
 // ── Glob matching (no new deps: ** and * segments only) ──────
@@ -170,6 +145,39 @@ export interface Evaluation {
   readonly reasons: readonly PolicyReason[];
 }
 
+// Only high-confidence permission findings can block; keyword-only
+// (low-confidence) findings stay warning-level.
+function permissionBlockReason(
+  findings: readonly RiskFinding[],
+  claims: readonly EvaluatedClaim[],
+): PolicyReason | null {
+  const highConfidence = findings.filter(
+    (f) => f.category === "permission" && f.confidence === "high",
+  );
+  if (highConfidence.length === 0) return null;
+
+  const permFiles = new Set(highConfidence.flatMap((f) => f.files));
+  const authEvidence = claims.some((c) => {
+    const touchesPerm =
+      c.claim.components.some((comp) => permFiles.has(comp)) ||
+      /\b(auth|permission|role|guard|session)\b/i.test(c.claim.text);
+    return touchesPerm && c.links.some(qualifiesForBlock);
+  });
+  if (authEvidence) return null;
+
+  const downgraded = claims.some((c) =>
+    c.links.some((l) => l.directness === "direct" && !qualifiesForBlock(l)),
+  );
+  return {
+    ruleId: "block_permission_change_without_auth_test",
+    message: `Permission-sensitive change (${[...permFiles].join(", ")}) has no qualifying auth-test evidence${
+      downgraded
+        ? " (existing direct evidence downgraded to proxy: non-independent or skip-marked)"
+        : ""
+    }.`,
+  };
+}
+
 export function evaluatePolicy(
   policy: PolicyConfig,
   input: EvaluationInput,
@@ -193,35 +201,8 @@ export function evaluatePolicy(
   }
 
   if (policy.rules.block_permission_change_without_auth_test) {
-    // Only high-confidence permission findings can block; keyword-only
-    // (low-confidence) findings stay warning-level.
-    const highConfidence = input.findings.filter(
-      (f) => f.category === "permission" && f.confidence === "high",
-    );
-    if (highConfidence.length > 0) {
-      const permFiles = new Set(highConfidence.flatMap((f) => f.files));
-      const authEvidence = input.claims.some((c) => {
-        const touchesPerm =
-          c.claim.components.some((comp) => permFiles.has(comp)) ||
-          /\b(auth|permission|role|guard|session)\b/i.test(c.claim.text);
-        return touchesPerm && c.links.some(qualifiesForBlock);
-      });
-      if (!authEvidence) {
-        const downgraded = input.claims.some((c) =>
-          c.links.some(
-            (l) => l.directness === "direct" && !qualifiesForBlock(l),
-          ),
-        );
-        blocks.push({
-          ruleId: "block_permission_change_without_auth_test",
-          message: `Permission-sensitive change (${[...permFiles].join(", ")}) has no qualifying auth-test evidence${
-            downgraded
-              ? " (existing direct evidence downgraded to proxy: non-independent or skip-marked)"
-              : ""
-          }.`,
-        });
-      }
-    }
+    const reason = permissionBlockReason(input.findings, input.claims);
+    if (reason) blocks.push(reason);
   }
 
   if (policy.rules.block_critical_claim_without_direct_evidence) {

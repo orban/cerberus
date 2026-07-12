@@ -1,5 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { persistTimestampedJson } from "../output.js";
 import type { CheckResult, EvaluatedClaim } from "./types.js";
 
 // ── Markdown report (PRD §8.7 section order) ─────────────────
@@ -194,10 +194,5 @@ export async function persistCheck(
   result: CheckResult,
   cwd: string,
 ): Promise<string> {
-  const dir = join(cwd, ".cerberus", "checks");
-  await mkdir(dir, { recursive: true });
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const filePath = join(dir, `${timestamp}.json`);
-  await writeFile(filePath, renderJson(result) + "\n", "utf-8");
-  return filePath;
+  return persistTimestampedJson(join(cwd, ".cerberus", "checks"), renderJson(result));
 }

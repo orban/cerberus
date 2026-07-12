@@ -13,13 +13,21 @@ export const SECRET_PATTERNS: readonly RegExp[] = [
   /\b(?:bearer|token|api[_-]?key|secret|password)\b['"]?\s*[:=]\s*['"][A-Za-z0-9_\-/+=]{16,}['"]/i,
 ];
 
+const GLOBAL_SECRET_PATTERNS = SECRET_PATTERNS.map(
+  (p) => new RegExp(p.source, p.flags.includes("i") ? "gi" : "g"),
+);
+
 export function redactSecrets(text: string): string {
   let out = text;
-  for (const pattern of SECRET_PATTERNS) {
-    out = out.replace(new RegExp(pattern.source, pattern.flags.includes("i") ? "gi" : "g"), "[REDACTED]");
+  for (const pattern of GLOBAL_SECRET_PATTERNS) {
+    out = out.replace(pattern, "[REDACTED]");
   }
   return out;
 }
+
+// Shared with evidence mapping so the two never drift.
+export const SKIP_MARKER = /\.skip\s*\(|\bxit\s*\(|\bxdescribe\s*\(|@pytest\.mark\.skip/;
+export const ASSERTION_LINE = /\b(expect|assert)\b/;
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -223,9 +231,6 @@ function detectDependencies(changeSet: ChangeSet): RiskFinding[] {
 }
 
 // ── Test integrity ───────────────────────────────────────────
-
-const ASSERTION_LINE = /\b(expect|assert)\b/;
-const SKIP_MARKER = /\.skip\s*\(|\bxit\s*\(|\bxdescribe\s*\(|@pytest\.mark\.skip/;
 
 function detectTestIntegrity(changeSet: ChangeSet): RiskFinding[] {
   const findings: RiskFinding[] = [];

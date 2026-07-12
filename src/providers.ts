@@ -1,7 +1,34 @@
 // Shared LLM provider clients. Used by judge panels (judges.ts) and
 // claim generation (pcc/claims.ts). Raw fetch, no SDK dependencies.
 
+import type { z } from "zod";
+
 export type ProviderFn = (prompt: string, model: string) => Promise<string>;
+
+// LLMs rarely return clean JSON. Try, in order: the raw response, the
+// contents of a fenced code block, and the first bracket-matched substring —
+// validating each candidate against the schema.
+export function parseJsonResponse<S extends z.ZodTypeAny>(
+  raw: string,
+  schema: S,
+  bracketPattern: RegExp,
+  label: string,
+): z.infer<S> {
+  const candidates = [
+    raw.trim(),
+    raw.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/)?.[1]?.trim(),
+    raw.match(bracketPattern)?.[0]?.trim(),
+  ].filter((c): c is string => c !== undefined && c.length > 0);
+
+  for (const candidate of candidates) {
+    try {
+      return schema.parse(JSON.parse(candidate));
+    } catch {
+      // try next strategy
+    }
+  }
+  throw new Error(`Could not parse ${label} from response: ${raw.slice(0, 200)}`);
+}
 
 export interface Provider {
   readonly call: ProviderFn;
@@ -34,7 +61,7 @@ export function getEnvVar(providerName: string): string | undefined {
   }
 }
 
-export const TIMEOUT_MS = 60_000;
+const TIMEOUT_MS = 60_000;
 
 export async function callOpenAI(prompt: string, model: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;

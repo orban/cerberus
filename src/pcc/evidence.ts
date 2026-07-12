@@ -2,16 +2,15 @@ import type {
   ChangeSet,
   Claim,
   EvaluatedClaim,
-  EvidenceArtifact,
   EvidenceLink,
   FileChange,
 } from "./types.js";
+import { ASSERTION_LINE, SKIP_MARKER } from "./detectors.js";
 
 // ── Test name extraction ─────────────────────────────────────
 
 const JS_TEST_NAME = /\b(?:it|test|describe)\s*\(\s*['"`](.+?)['"`]/g;
 const PY_TEST_NAME = /\bdef\s+(test_\w+)/g;
-const SKIP_MARKER = /\.skip\s*\(|\bxit\s*\(|\bxdescribe\s*\(|@pytest\.mark\.skip/;
 
 export function extractTestNames(lines: readonly string[]): string[] {
   const names: string[] = [];
@@ -66,9 +65,8 @@ interface TestCandidate {
 }
 
 function assertionsRewritten(file: FileChange): boolean {
-  const assertion = /\b(expect|assert)\b/;
-  const removed = file.hunks.flatMap((h) => h.removed).filter((l) => assertion.test(l));
-  const added = file.hunks.flatMap((h) => h.added).filter((l) => assertion.test(l));
+  const removed = file.hunks.flatMap((h) => h.removed).filter((l) => ASSERTION_LINE.test(l));
+  const added = file.hunks.flatMap((h) => h.added).filter((l) => ASSERTION_LINE.test(l));
   return removed.length > 0 && added.length > 0;
 }
 
@@ -159,15 +157,13 @@ export function mapEvidence(
         claimTouchesImpl
       );
 
-      const artifact: EvidenceArtifact = {
-        file: candidate.file,
-        ...(candidate.testName !== undefined ? { testName: candidate.testName } : {}),
-        changedInRange: candidate.changedInRange,
-        skipMarked: candidate.skipMarked,
-      };
-
       links.push({
-        artifact,
+        artifact: {
+          file: candidate.file,
+          testName: candidate.testName,
+          changedInRange: candidate.changedInRange,
+          skipMarked: candidate.skipMarked,
+        },
         directness: candidate.changedInRange ? "direct" : "proxy",
         independent,
         execution: "not-verified",
@@ -193,10 +189,4 @@ export function mapEvidence(
       status: finalLinks.length > 0 ? "supported" : "unsupported",
     };
   });
-}
-
-export function unevidencedClaims(
-  evaluated: readonly EvaluatedClaim[],
-): readonly EvaluatedClaim[] {
-  return evaluated.filter((e) => e.status === "unsupported");
 }

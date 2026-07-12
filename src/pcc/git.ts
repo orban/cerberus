@@ -204,7 +204,9 @@ interface NumstatEntry {
 }
 
 function parseNumstat(raw: string): Map<string, NumstatEntry> {
-  const tokens = raw.split("\0").filter((t) => t.length > 0 || true);
+  // Keep empty tokens: the loop below skips them positionally, and rename
+  // entries rely on token offsets.
+  const tokens = raw.split("\0");
   const entries = new Map<string, NumstatEntry>();
   let i = 0;
   while (i < tokens.length) {
@@ -300,26 +302,29 @@ export async function collectChangeSet(
     options.base,
   );
 
-  const nameStatusRaw = await gitOrThrow(
-    ["diff", "--name-status", "-M", "-z", mergeBase, headRef, "--"],
-    cwd,
-    "Collecting change statuses",
-  );
-  const numstatRaw = await gitOrThrow(
-    ["diff", "--numstat", "-M", "-z", mergeBase, headRef, "--"],
-    cwd,
-    "Collecting change sizes",
-  );
-  const patchRaw = await gitOrThrow(
-    ["diff", "-U0", "-M", mergeBase, headRef, "--"],
-    cwd,
-    "Collecting change content",
-  );
-  const logRaw = await gitOrThrow(
-    ["log", "--format=%s", `${mergeBase}..${headRef}`, "--"],
-    cwd,
-    "Collecting commit subjects",
-  );
+  // Independent reads over the same resolved range — run concurrently.
+  const [nameStatusRaw, numstatRaw, patchRaw, logRaw] = await Promise.all([
+    gitOrThrow(
+      ["diff", "--name-status", "-M", "-z", mergeBase, headRef, "--"],
+      cwd,
+      "Collecting change statuses",
+    ),
+    gitOrThrow(
+      ["diff", "--numstat", "-M", "-z", mergeBase, headRef, "--"],
+      cwd,
+      "Collecting change sizes",
+    ),
+    gitOrThrow(
+      ["diff", "-U0", "-M", mergeBase, headRef, "--"],
+      cwd,
+      "Collecting change content",
+    ),
+    gitOrThrow(
+      ["log", "--format=%s", `${mergeBase}..${headRef}`, "--"],
+      cwd,
+      "Collecting commit subjects",
+    ),
+  ]);
 
   const statuses = parseNameStatus(nameStatusRaw);
   const sizes = parseNumstat(numstatRaw);
@@ -329,7 +334,7 @@ export async function collectChangeSet(
     const size = sizes.get(entry.path);
     return {
       path: entry.path,
-      ...(entry.oldPath !== undefined ? { oldPath: entry.oldPath } : {}),
+      oldPath: entry.oldPath,
       status: entry.status,
       additions: size?.additions ?? 0,
       deletions: size?.deletions ?? 0,
@@ -346,9 +351,7 @@ export async function collectChangeSet(
     rangeLabel: label,
     files,
     commitSubjects: logRaw.split("\n").filter((s) => s.length > 0),
-    ...(options.description !== undefined
-      ? { description: options.description }
-      : {}),
+    description: options.description,
   };
 }
 

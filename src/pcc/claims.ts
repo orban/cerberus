@@ -4,9 +4,10 @@ import type {
   Claim,
   ClaimSeverity,
   RiskFinding,
+  RiskSeverity,
 } from "./types.js";
 import { redactSecrets } from "./detectors.js";
-import { getProvider, getEnvVar, type ProviderFn } from "../providers.js";
+import { getProvider, getEnvVar, parseJsonResponse, type ProviderFn } from "../providers.js";
 
 // ── Options ──────────────────────────────────────────────────
 
@@ -114,36 +115,21 @@ const ClaimItemSchema = z.object({
 const ClaimsResponseSchema = z.array(ClaimItemSchema).min(1);
 
 export function parseClaimsResponse(raw: string): Claim[] {
-  const candidates = [
-    raw.trim(),
-    raw.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/)?.[1]?.trim(),
-    raw.match(/\[[\s\S]*\]/)?.[0]?.trim(),
-  ].filter((c): c is string => c !== undefined && c.length > 0);
-
-  for (const candidate of candidates) {
-    try {
-      const parsed = ClaimsResponseSchema.parse(JSON.parse(candidate));
-      return parsed.map((item, i) => ({
-        id: `c${i + 1}`,
-        text: item.text,
-        kind: item.kind,
-        components: item.components,
-        severityIfFalse: item.severity_if_false,
-        confidence: "llm" as const,
-        ...(item.suggested_evidence !== undefined
-          ? { suggestedEvidence: item.suggested_evidence }
-          : {}),
-      }));
-    } catch {
-      // try next strategy
-    }
-  }
-  throw new Error(`Could not parse claims from response: ${raw.slice(0, 200)}`);
+  const parsed = parseJsonResponse(raw, ClaimsResponseSchema, /\[[\s\S]*\]/, "claims");
+  return parsed.map((item, i) => ({
+    id: `c${i + 1}`,
+    text: item.text,
+    kind: item.kind,
+    components: item.components,
+    severityIfFalse: item.severity_if_false,
+    confidence: "llm" as const,
+    suggestedEvidence: item.suggested_evidence,
+  }));
 }
 
 // ── Deterministic fallback ───────────────────────────────────
 
-const FINDING_SEVERITY_TO_CLAIM: Record<string, ClaimSeverity> = {
+const FINDING_SEVERITY_TO_CLAIM: Record<RiskSeverity, ClaimSeverity> = {
   info: "low",
   warning: "medium",
   critical: "critical",
@@ -164,7 +150,7 @@ export function deterministicClaims(
       text: `Change affects ${finding.category.replace("-", " ")} surface: ${finding.explanation}`,
       kind: "behavior-change",
       components: finding.files,
-      severityIfFalse: FINDING_SEVERITY_TO_CLAIM[finding.severity] ?? "medium",
+      severityIfFalse: FINDING_SEVERITY_TO_CLAIM[finding.severity],
       confidence: "deterministic",
     });
   }
