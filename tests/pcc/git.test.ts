@@ -125,6 +125,56 @@ describe("collectChangeSet", () => {
     git(repo, "checkout", "feature");
   });
 
+  it("attaches hunks to non-ASCII file paths", async () => {
+    git(repo, "checkout", "-b", "unicode-branch", "feature");
+    await commitFile(repo, "src/日本語.ts", "const secret = 'AKIAIOSFODNN7EXAMPLE';\n", "unicode file");
+
+    const cs = await collectChangeSet({ cwd: repo, range: "feature..unicode-branch" });
+    const file = cs.files.find((f) => f.path.includes("日本語"));
+    expect(file).toBeDefined();
+    expect(file!.hunks.length).toBeGreaterThan(0);
+    expect(file!.hunks.some((h) => h.added.some((l) => l.includes("AKIA")))).toBe(true);
+    git(repo, "checkout", "feature");
+  });
+
+  it("attaches hunks to paths containing ' b/'", async () => {
+    git(repo, "checkout", "-b", "spaced-branch", "feature");
+    await commitFile(repo, "src/a b/c.ts", "export const spaced = 1;\n", "spaced path");
+
+    const cs = await collectChangeSet({ cwd: repo, range: "feature..spaced-branch" });
+    const file = cs.files.find((f) => f.path === "src/a b/c.ts");
+    expect(file).toBeDefined();
+    expect(file!.hunks.some((h) => h.added.some((l) => l.includes("spaced = 1")))).toBe(true);
+    git(repo, "checkout", "feature");
+  });
+
+  it("keeps content lines starting with ++ or --", async () => {
+    git(repo, "checkout", "-b", "plusminus-base", "feature");
+    await commitFile(repo, "src/plus.c", "int f(void) {\n-- old sql comment\n}\n", "seed");
+    git(repo, "checkout", "-b", "plusminus-branch");
+    await commitFile(repo, "src/plus.c", "int f(void) {\n++counter;\n}\n", "swap lines");
+
+    const cs = await collectChangeSet({ cwd: repo, range: "plusminus-base..plusminus-branch" });
+    const file = cs.files.find((f) => f.path === "src/plus.c");
+    const added = file!.hunks.flatMap((h) => h.added);
+    const removed = file!.hunks.flatMap((h) => h.removed);
+    expect(added).toContain("++counter;");
+    expect(removed).toContain("-- old sql comment");
+    git(repo, "checkout", "feature");
+  });
+
+  it("keys deleted files' hunks by the deleted path", async () => {
+    git(repo, "checkout", "-b", "delete-branch", "feature");
+    git(repo, "rm", "--quiet", "src/added.ts");
+    git(repo, "commit", "--message", "delete file");
+
+    const cs = await collectChangeSet({ cwd: repo, range: "feature..delete-branch" });
+    const file = cs.files.find((f) => f.path === "src/added.ts");
+    expect(file?.status).toBe("deleted");
+    expect(file!.hunks.some((h) => h.removed.some((l) => l.includes("const a = 1")))).toBe(true);
+    git(repo, "checkout", "feature");
+  });
+
   it("yields an empty ChangeSet for a rangeless diff, not an error", async () => {
     const cs = await collectChangeSet({ cwd: repo, range: "feature..feature" });
     expect(cs.files).toHaveLength(0);

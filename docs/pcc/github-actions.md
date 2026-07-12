@@ -16,8 +16,9 @@ the report).
   head ref in the job that holds secrets — run `cerberus check` with `--no-llm`
   there instead.
 - **Scope permissions to the minimum.** The workflow below requests
-  `contents: read` only (plus `pull-requests: write` in the optional
-  sticky-comment step).
+  `contents: read` only (plus job-level `pull-requests: write` when you
+  include the optional sticky-comment step — GitHub Actions does not allow
+  `permissions` on individual steps).
 - **LLM data handling.** With an API key configured, claim generation sends
   redacted diff excerpts to the model provider (secrets matching
   high-confidence patterns are replaced with `[REDACTED]` first). To send only
@@ -71,13 +72,21 @@ jobs:
 
 The job summary is easy to miss on a green check. This optional step keeps the
 report visible on the PR itself, updating one comment per PR instead of
-stacking new ones:
+stacking new ones. `permissions` is only valid at the workflow or job level,
+so grant the write scope on the job:
 
 ```yaml
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # only needed for the sticky-comment step
+    steps:
+      # ... steps from the workflow above ...
+
       - name: Post report as sticky comment
         if: github.event_name == 'pull_request'
-        permissions:
-          pull-requests: write
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

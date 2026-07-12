@@ -242,6 +242,7 @@ function parseNumstat(raw: string): Map<string, NumstatEntry> {
 function parseHunks(patch: string): Map<string, FileHunk[]> {
   const perFile = new Map<string, FileHunk[]>();
   let currentFile: string | null = null;
+  let pendingOldFile: string | null = null;
   let currentHunk: { header: string; added: string[]; removed: string[] } | null = null;
 
   const flush = () => {
@@ -260,15 +261,28 @@ function parseHunks(patch: string): Map<string, FileHunk[]> {
   for (const line of patch.split("\n")) {
     if (line.startsWith("diff --git ")) {
       flush();
+      // Fallback only: paths containing " b/" make this ambiguous. The
+      // ---/+++ header lines below override it with the unambiguous path.
       const match = line.match(/ b\/(.+)$/);
       currentFile = match?.[1] ?? null;
+      pendingOldFile = null;
+    } else if (!currentHunk && line.startsWith("--- a/")) {
+      // Git appends a tab after header paths containing spaces — strip it.
+      pendingOldFile = line.slice(6).replace(/\t$/, "");
+    } else if (!currentHunk && line.startsWith("+++ ")) {
+      const target = line.slice(4).replace(/\t$/, "");
+      // Deleted files have "+++ /dev/null"; key their hunks by the old path,
+      // matching the name-status entry.
+      currentFile = target.startsWith("b/") ? target.slice(2) : (pendingOldFile ?? currentFile);
     } else if (line.startsWith("@@")) {
       flush();
       currentHunk = { header: line, added: [], removed: [] };
     } else if (currentHunk) {
-      if (line.startsWith("+") && !line.startsWith("+++")) {
+      // Inside a hunk, +++/--- can only be content ("++counter;" added,
+      // "-- sql" removed) — file headers never appear here, so no exclusion.
+      if (line.startsWith("+")) {
         currentHunk.added.push(line.slice(1));
-      } else if (line.startsWith("-") && !line.startsWith("---")) {
+      } else if (line.startsWith("-")) {
         currentHunk.removed.push(line.slice(1));
       }
     }
@@ -315,7 +329,10 @@ export async function collectChangeSet(
       "Collecting change sizes",
     ),
     gitOrThrow(
-      ["diff", "-U0", "-M", mergeBase, headRef, "--"],
+      // quotepath=false: the default quotes non-ASCII paths in patch headers,
+      // which would desync hunk keys from the raw -z name-status paths and
+      // silently blind every content detector for those files.
+      ["-c", "core.quotepath=false", "diff", "-U0", "-M", mergeBase, headRef, "--"],
       cwd,
       "Collecting change content",
     ),

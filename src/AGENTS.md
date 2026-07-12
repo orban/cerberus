@@ -25,8 +25,16 @@ Does not own: test fixtures, build config, documentation. Tests live in `../test
 | Suite-level runner + multiple-testing correction | `runner.ts` `runSuite()` + `applyCorrection()` |
 | Code contract evaluation (vm sandbox) | `contracts.ts` `evaluateCodeContract()` |
 | LLM judge panel evaluation | `judges.ts` `evaluateWithPanel()` |
-| LLM provider implementations (OpenAI, Anthropic, Google) | `judges.ts` `callOpenAI()`, `callAnthropic()`, `callGoogle()` |
-| Judge response parsing (3 fallback strategies) | `judges.ts` `parseVerdict()` |
+| LLM provider implementations (OpenAI, Anthropic, Google) | `providers.ts` `callOpenAI()`, `callAnthropic()`, `callGoogle()` |
+| LLM JSON response parsing (3 fallback strategies) | `providers.ts` `parseJsonResponse()` (wrapped by `judges.ts` `parseVerdict()`) |
+| Change Contract analysis (`cerberus check`) | `pcc/check.ts` `runCheck()` |
+| Git change collection + range normalization | `pcc/git.ts` `collectChangeSet()`, `resolveRange()` |
+| Deterministic risk detectors | `pcc/detectors.ts` `detectRisks()` |
+| Claim generation (LLM + deterministic fallback) | `pcc/claims.ts` `generateClaims()` |
+| Claim-to-test evidence mapping | `pcc/evidence.ts` `mapEvidence()` |
+| Policy schema, verdicts, invariants | `pcc/policy.ts` `evaluatePolicy()` |
+| Check report rendering + persistence | `pcc/report.ts` |
+| Historical replay batch mode | `pcc/replay.ts` `runReplay()` |
 | SPRT math (create, update, boundaries) | `stats.ts` |
 | Wilson score confidence intervals | `stats.ts` `wilsonScoreInterval()` |
 | BH and Bonferroni corrections | `stats.ts` |
@@ -179,10 +187,22 @@ cerberus.yaml -> loadConfig() -> ValidatedConfig
 6. Add test fixtures in `../tests/fixtures/`
 
 ### Adding a new LLM provider
-1. Add a `call*()` function in `judges.ts` that takes `(prompt, model)` and returns the raw string response
+1. Add a `call*()` function in `providers.ts` that takes `(prompt, model)` and returns the raw string response
 2. Add the prefix check in `getProvider()` -- model prefix routes to provider
 3. Add the env var check in `getEnvVar()`
-4. The judge panel machinery handles retries and verdict parsing automatically
+4. The judge panel machinery handles retries and verdict parsing automatically; `pcc/claims.ts` picks up the new provider through the same `getProvider()` routing
+
+## Proof-Carrying Changes (pcc/)
+
+`cerberus check` analyzes a git range into a Change Contract. The subsystem lives in `pcc/` and shares `providers.ts`, `errors.ts`, and `EXIT_CODE` with the study runner but nothing else.
+
+Data flow: `cli.ts check` → `pcc/check.ts runCheck()` → `pcc/git.ts collectChangeSet()` (spawned git, all range forms normalized to merge-base(base, head)..head) → `pcc/detectors.ts detectRisks()` (heuristic findings: migrations, permissions, public API, deps/infra, test integrity, secrets, unrelated-change clustering) → `pcc/claims.ts generateClaims()` (LLM-proposed with secret redaction; deterministic fallback on `--no-llm`, missing key, or LLM failure) → `pcc/evidence.ts mapEvidence()` (static token-overlap mapping of claims to tests, `direct` vs `proxy`, independence detection) → `pcc/policy.ts evaluatePolicy()` (Zod-validated YAML policy, advisory-first defaults, five verdicts) → `pcc/report.ts` (markdown/JSON, persisted to `.cerberus/checks/`). `pcc/replay.ts` batches `runCheck` over historical ranges for policy tuning.
+
+Key invariants:
+- Evidence is statically mapped -- execution is never verified; every `EvidenceLink` carries `execution: "not-verified"`
+- Block rules ship disabled (advisory-first); verdict exit codes: pass/pass-with-warnings 0, needs-evidence/split-required 3, block 1; `--advisory`/`--override` clamp the exit code to 0 but never rewrite the verdict
+- Refs are user input: `assertSafeRef()` rejects refs starting with `-`; all git invocations use `spawn(shell: false)` with `--` separators
+- Diff content passes `redactSecrets()` before any LLM prompt; `--llm-content minimal` sends no raw hunks
 
 ## Boundaries
 
@@ -195,7 +215,7 @@ cerberus.yaml -> loadConfig() -> ValidatedConfig
 ### Never
 - Add `any` to source code
 - Import from `tests/` in source files
-- Use `process.env` outside `judges.ts` (except `process.env.CI` in `output.ts` and `runner.ts`)
+- Use `process.env` outside `providers.ts` (except `process.env.CI` in `output.ts` and `runner.ts`)
 - Let the assertion sandbox access `process`, `require`, or filesystem APIs
 
 ## Pitfalls

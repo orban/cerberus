@@ -37,7 +37,9 @@ export function buildClaimPrompt(
     ? redactSecrets(changeSet.description)
     : "(none provided)";
 
-  const subjects = changeSet.commitSubjects.slice(0, 20).join("\n") || "(none)";
+  // Commit subjects are user content too — a secret pasted into a commit
+  // message must not reach the provider any more than one in a hunk (R14).
+  const subjects = redactSecrets(changeSet.commitSubjects.slice(0, 20).join("\n")) || "(none)";
 
   const findingLines =
     findings

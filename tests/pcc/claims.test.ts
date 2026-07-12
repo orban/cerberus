@@ -70,6 +70,15 @@ describe("buildClaimPrompt", () => {
     expect(prompt).not.toContain("AKIAIOSFODNN7EXAMPLE");
   });
 
+  it("redacts secrets from commit subjects", () => {
+    const cs = changeSet({
+      commitSubjects: ["fix auth, key=AKIAIOSFODNN7EXAMPLE"],
+    });
+    const prompt = buildClaimPrompt(cs, []);
+    expect(prompt).toContain("[REDACTED]");
+    expect(prompt).not.toContain("AKIAIOSFODNN7EXAMPLE");
+  });
+
   it("minimal mode omits hunk content", () => {
     const prompt = buildClaimPrompt(changeSet(), [], "minimal");
     expect(prompt).toContain("src/retry.ts");

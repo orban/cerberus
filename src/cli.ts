@@ -73,7 +73,7 @@ program
   .command("check")
   .description("Analyze a git change range into a Change Contract with a policy verdict")
   .argument("[range]", "git range (base..head, base...head, or a single base ref; default: merge-base with the base branch)")
-  .option("--base <ref>", "Base ref (default resolution: origin/HEAD > origin/main > main)")
+  .option("--base <ref>", "Base ref (default resolution: origin/HEAD > origin/main > origin/master > main > master)")
   .option("--policy <path>", "Policy YAML (default: ./pcc-policy.yaml when present, else the embedded advisory-first default)")
   .option("--description <text>", "Task or PR description")
   .option("--description-file <path>", "Read the task or PR description from a file")
@@ -113,13 +113,15 @@ program
 
       if (options.replay !== undefined || options.replayMerges !== undefined) {
         const { runReplay } = await import("./pcc/replay.js");
-        const exitCode = await runReplay({
+        // Set exitCode instead of calling process.exit() so pending stdout
+        // writes drain before the process ends (exit() drops piped output).
+        process.exitCode = await runReplay({
           cwd,
           rangesFile: options.replay,
           merges: options.replayMerges !== undefined ? Number(options.replayMerges) : undefined,
           policyPath,
         });
-        process.exit(exitCode);
+        return;
       }
 
       const { runCheck } = await import("./pcc/check.js");
@@ -152,7 +154,9 @@ program
 
       const persisted = await persistCheck(result, cwd);
       process.stderr.write(`Result persisted to ${persisted}\n`);
-      process.exit(result.effectiveExitCode);
+      // exitCode, not process.exit(): the report can exceed the pipe buffer,
+      // and exit() would truncate it mid-write in CI (`check ... | tee`).
+      process.exitCode = result.effectiveExitCode;
     } catch (e) {
       if (e instanceof CerberusError) {
         process.stderr.write(`Error: ${e.message}\n`);
