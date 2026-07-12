@@ -27,6 +27,7 @@ Statistical CI/CD for AI agents.
 ### Downlinks
 
 - `src/AGENTS.md` — Runtime logic: config, runner, stats, judges, contracts, output, CLI
+- `docs/solutions/` — Documented solutions to past problems (bugs, best practices, workflow patterns), organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Relevant when implementing or debugging in documented areas.
 
 ### Entry Points
 
