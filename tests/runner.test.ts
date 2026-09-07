@@ -104,7 +104,13 @@ describe("code contracts are unaffected by the calibrated path", () => {
       "ci",
       "trialsEvaluated",
       "sprtStoppedEarly",
+      // U7 (KTD7): gating is explicit on every result, code contracts
+      // included, because the rollups filter on it rather than inferring it.
+      // A code contract is an exact oracle and is always gating.
+      "gating",
     ]);
+    expect(contract.gating).toBe(true);
+    expect(contract.advisoryReasons).toBeUndefined();
     expect(contract.contractName).toBe("exits-cleanly");
     expect(contract.status).toBe("pass");
     expect(contract.observedRate).toBe(1);
@@ -268,6 +274,185 @@ describe("calibrated judge contracts", () => {
     expect(contract.observedRate).toBeCloseTo(0.8, 10);
     expect(contract.observedRate).toBeLessThan(contract.judgedRate!);
   }, 30_000);
+});
+
+// ── Gating vs advisory envelope (R6, R11, R12, KTD7) ─────────
+//
+// The exit code is the whole point of these: a judge that was never measured
+// against human labels reports, and nothing more. Everything here runs on the
+// scripted judge, so no API key is read.
+
+/** Fail every trial; the reported verdict is what a gating run would have had. */
+const alwaysFails = () => "fail" as const;
+const alwaysPasses = () => "pass" as const;
+
+describe("gating vs advisory envelope", () => {
+  it("AE1: a suite whose only judge contract is advisory and below threshold passes", async () => {
+    programJudge("advisory-judge", alwaysFails);
+
+    const result = await runSuite(await config("advisory-only-config.yaml"), {
+      json: false,
+    });
+    const contract = result.studies[0]!.contractResults[0]!;
+
+    // The verdict it would have had is still reported (R11).
+    expect(contract.status).toBe("fail");
+    expect(contract.observedRate).toBe(0);
+    expect(contract.gating).toBe(false);
+    expect(contract.advisoryReasons).toEqual(["no-gold-set"]);
+
+    // ...and it does not reach the exit code.
+    expect(result.status).toBe("pass");
+  }, 30_000);
+
+  it("fails on a gating code contract while an advisory judge contract is reported but not the cause", async () => {
+    programJudge("advisory-judge", alwaysFails);
+
+    const result = await runSuite(await config("advisory-mixed-config.yaml"), {
+      json: false,
+    });
+    const byName = new Map(
+      result.studies[0]!.contractResults.map((c) => [c.contractName, c]),
+    );
+
+    expect(result.status).toBe("fail");
+
+    const code = byName.get("never-holds")!;
+    expect(code.gating).toBe(true);
+    expect(code.status).toBe("fail");
+    expect(code.advisoryReasons).toBeUndefined();
+
+    // Named in the report, absent from the cause.
+    const judge = byName.get("advisory-judge")!;
+    expect(judge.status).toBe("fail");
+    expect(judge.gating).toBe(false);
+
+    const causes = result.studies
+      .flatMap((s) => s.contractResults)
+      .filter((c) => c.gating && c.status === "fail")
+      .map((c) => c.contractName);
+    expect(causes).toEqual(["never-holds"]);
+  }, 30_000);
+
+  it("passes a suite with zero gating contracts, whatever the advisory verdicts say", async () => {
+    programJudge("advisory-passes", alwaysPasses);
+    programJudge("advisory-fails", alwaysFails);
+
+    const result = await runSuite(
+      await config("advisory-zero-gating-config.yaml"),
+      { json: false },
+    );
+    const all = result.studies.flatMap((s) => s.contractResults);
+
+    expect(all.every((c) => c.gating === false)).toBe(true);
+    expect(all.map((c) => c.status).sort()).toEqual(["fail", "pass"]);
+    expect(result.status).toBe("pass");
+  }, 30_000);
+
+  it("fails an aborted study even when every contract is advisory", async () => {
+    // The judge passes everything it is asked, so the contract rollup has no
+    // complaint. Only the error-rate abort knows the agent is broken.
+    programJudge("advisory-on-a-crash", alwaysPasses);
+
+    const result = await runSuite(await config("advisory-abort-config.yaml"), {
+      json: false,
+    });
+
+    expect(result.studies[0]!.aborted).toBe(true);
+    expect(result.studies[0]!.contractResults[0]!.gating).toBe(false);
+    expect(result.status).toBe("fail");
+  }, 30_000);
+
+  it("excludes advisory contracts from the multiple-comparison family", async () => {
+    programJudge("advisory-one", alwaysFails);
+    programJudge("advisory-two", alwaysFails);
+
+    const withAdvisory = await runSuite(
+      await config("advisory-correction-config.yaml"),
+      { json: false },
+    );
+    const baseline = await runSuite(
+      await config("advisory-correction-baseline-config.yaml"),
+      { json: false },
+    );
+
+    const alphas = (result: Awaited<ReturnType<typeof runSuite>>) =>
+      new Map(
+        result.studies
+          .flatMap((s) => s.contractResults)
+          .map((c) => [c.contractName, c.correctedAlpha]),
+      );
+
+    const mixed = alphas(withAdvisory);
+    const alone = alphas(baseline);
+
+    // Advisory contracts spend no alpha budget and receive no corrected alpha.
+    expect(mixed.get("advisory-one")).toBeUndefined();
+    expect(mixed.get("advisory-two")).toBeUndefined();
+
+    // The gating contracts are corrected as a family of two, not of four.
+    expect(mixed.get("exits-cleanly")).toBe(alone.get("exits-cleanly"));
+    expect(mixed.get("parses-json")).toBe(alone.get("parses-json"));
+    expect(mixed.get("exits-cleanly")).toBeGreaterThan(0);
+  }, 30_000);
+
+  it("reaches each of R12's four advisory reasons, distinctly", async () => {
+    programJudge("no-labels", alwaysPasses);
+    programJudge("marked-labels", alwaysPasses);
+    programJudge("weak-certification", alwaysPasses);
+    programJudge("floor-too-wide", certifiedJudge(() => "pass"));
+    programJudge("floor-with-a-gap", certifiedJudge(() => "pass"));
+
+    const result = await runSuite(
+      await config("advisory-reasons-config.yaml"),
+      { json: false },
+    );
+    const byName = new Map(
+      result.studies[0]!.contractResults.map((c) => [c.contractName, c]),
+    );
+
+    for (const contract of byName.values()) {
+      expect(contract.gating).toBe(false);
+    }
+
+    // A contract with no gold set is never certified, so this reason cannot be
+    // sourced from `ineligibilityReasons` -- it is named on its own.
+    expect(byName.get("no-labels")!.advisoryReasons).toEqual(["no-gold-set"]);
+    expect(byName.get("marked-labels")!.advisoryReasons).toContain(
+      "marked-gold-set",
+    );
+    expect(byName.get("weak-certification")!.advisoryReasons).toEqual([
+      "certification",
+    ]);
+    expect(byName.get("floor-too-wide")!.advisoryReasons).toEqual([
+      "calibration-floor",
+    ]);
+
+    // Four distinct reason sets across the five contracts.
+    const sets = new Set(
+      [...byName.values()].map((c) => JSON.stringify(c.advisoryReasons)),
+    );
+    expect(sets.size).toBe(4);
+
+    // R12's labels estimate rides along wherever the floor leaves a gap to
+    // close. 20 labels put the floor at +/- 0.144; closing to 0.05 needs 64.
+    const floored = byName.get("floor-with-a-gap")!;
+    expect(floored.goldSetSize).toBe(20);
+    expect(floored.labelsNeeded).toBe(64);
+
+    // A threshold sitting exactly on the band's centre has no gap and so no
+    // estimate: no gold-set size separates it, and that is not reported as a
+    // very large number.
+    expect(byName.get("floor-too-wide")!.goldSetSize).toBe(20);
+    expect(byName.get("floor-too-wide")!.labelsNeeded).toBeUndefined();
+
+    // A judge contract with no gold set has no size and no estimate to give.
+    expect(byName.get("no-labels")!.goldSetSize).toBeUndefined();
+    expect(byName.get("no-labels")!.labelsNeeded).toBeUndefined();
+
+    // The suite is vacuously passing: nothing here may drive the exit.
+    expect(result.status).toBe("pass");
+  }, 60_000);
 });
 
 // ── Progress display ─────────────────────────────────────────

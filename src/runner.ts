@@ -17,6 +17,7 @@ import type {
   TrialMeta,
   SuiteResult,
   StudyResult,
+  AdvisoryReason,
   ContractResult,
   ContractDecision,
   ConfidenceInterval,
@@ -373,10 +374,75 @@ function updateCalibrated(
   return { ...state, sequence, observations, judgedSuccesses, interval };
 }
 
+// ── Gating vs advisory (R6, R11, R12, KTD7) ──────────────────
+//
+// KD3: gold labels are required to gate. A judge that was never measured
+// against humans has no authority over CI's exit, so its verdict is reported
+// and then held out of both rollups — the suite status and the
+// multiple-comparison family. The envelope is settled here, before trial 1,
+// alongside the certification it reads.
+
+/** What a contract may do with its verdict, and why not, if not. */
+interface GatingEnvelope {
+  readonly gating: boolean;
+  /** Non-empty exactly when `gating` is false. */
+  readonly advisoryReasons: readonly AdvisoryReason[];
+  readonly goldSetSize: number | null;
+  readonly labelsNeeded: number | null;
+}
+
+/** Code contracts are exact oracles: nothing about them needs certifying. */
+const GATING_CODE_CONTRACT: GatingEnvelope = {
+  gating: true,
+  advisoryReasons: [],
+  goldSetSize: null,
+  labelsNeeded: null,
+};
+
+/**
+ * A judge contract with no gold set at all. `certifyJudge` never ran, so there
+ * is no `ineligibilityReasons` list to source from and the cause has to be
+ * named here — the one of R12's four that certification cannot report.
+ */
+const NO_GOLD_SET: GatingEnvelope = {
+  gating: false,
+  advisoryReasons: ["no-gold-set"],
+  goldSetSize: null,
+  labelsNeeded: null,
+};
+
+function envelopeFromCertification(
+  certification: JudgeCertification,
+): GatingEnvelope {
+  return {
+    gating: certification.gatingEligible,
+    advisoryReasons: certification.ineligibilityReasons,
+    goldSetSize: certification.goldSetSize,
+    labelsNeeded: certification.labelsNeeded,
+  };
+}
+
+/** The envelope's fields, shaped for the result. Absent rather than null. */
+function envelopeFields(envelope: GatingEnvelope) {
+  return {
+    gating: envelope.gating,
+    ...(envelope.advisoryReasons.length === 0
+      ? {}
+      : { advisoryReasons: envelope.advisoryReasons }),
+    ...(envelope.goldSetSize === null
+      ? {}
+      : { goldSetSize: envelope.goldSetSize }),
+    ...(envelope.labelsNeeded === null
+      ? {}
+      : { labelsNeeded: envelope.labelsNeeded }),
+  };
+}
+
 // ── Study runner ─────────────────────────────────────────────
 
 interface SPRTContractState {
   readonly kind: "sprt";
+  readonly envelope: GatingEnvelope;
   readonly sprtConfig: SPRTConfig;
   sprtState: SPRTState;
   successes: number;
@@ -385,6 +451,7 @@ interface SPRTContractState {
 
 interface CalibratedContractState {
   readonly kind: "calibrated";
+  readonly envelope: GatingEnvelope;
   /** U5's certification, kept for the reporting units downstream. */
   readonly certification: JudgeCertification;
   calibrated: CalibratedState;
@@ -400,13 +467,17 @@ function contractDecision(state: ContractState): ContractDecision {
     : state.calibrated.decision;
 }
 
-function newSPRTState(contract: ContractConfig): SPRTContractState {
+function newSPRTState(
+  contract: ContractConfig,
+  envelope: GatingEnvelope,
+): SPRTContractState {
   const sprtConfig = sprtConfigFromContract(
     contract.threshold,
     contract.confidence,
   );
   return {
     kind: "sprt",
+    envelope,
     sprtConfig,
     sprtState: createSPRT(sprtConfig),
     successes: 0,
@@ -428,35 +499,44 @@ async function initContractStates(
   const states = new Map<string, ContractState>();
 
   for (const contract of study.contracts) {
-    if (contract.type === "judge") {
-      const load = config.goldSets.get(`${study.name}::${contract.name}`);
-      if (load) {
-        const { alphaA, alphaC } = resolveAlphaSplit(contract);
-        const certification = certifyJudge({
-          goldSet: load,
-          judgeVerdicts: await judgeGoldSet(config, contract, load, tempDir),
-          threshold: contract.threshold,
-          alphaC,
-        });
-
-        // A gold set the judge never ruled on pairs nothing, so there is no
-        // rectifier and nothing to correct with — that contract falls back to
-        // the raw judged rate like any uncalibrated one.
-        const rectifier = certification.rectifier;
-        if (rectifier !== null) {
-          states.set(contract.name, {
-            kind: "calibrated",
-            certification,
-            calibrated: createCalibratedState(certification, rectifier, alphaA),
-            successes: 0,
-            failures: 0,
-          });
-          continue;
-        }
-      }
+    if (contract.type !== "judge") {
+      states.set(contract.name, newSPRTState(contract, GATING_CODE_CONTRACT));
+      continue;
     }
 
-    states.set(contract.name, newSPRTState(contract));
+    const load = config.goldSets.get(`${study.name}::${contract.name}`);
+    if (!load) {
+      states.set(contract.name, newSPRTState(contract, NO_GOLD_SET));
+      continue;
+    }
+
+    const { alphaA, alphaC } = resolveAlphaSplit(contract);
+    const certification = certifyJudge({
+      goldSet: load,
+      judgeVerdicts: await judgeGoldSet(config, contract, load, tempDir),
+      threshold: contract.threshold,
+      alphaC,
+    });
+    const envelope = envelopeFromCertification(certification);
+
+    // A gold set the judge never ruled on pairs nothing, so there is no
+    // rectifier and nothing to correct with — that contract falls back to
+    // the raw judged rate like any uncalibrated one. It keeps its envelope:
+    // certification is what decides gating, not which sequential path ran.
+    const rectifier = certification.rectifier;
+    if (rectifier === null) {
+      states.set(contract.name, newSPRTState(contract, envelope));
+      continue;
+    }
+
+    states.set(contract.name, {
+      kind: "calibrated",
+      envelope,
+      certification,
+      calibrated: createCalibratedState(certification, rectifier, alphaA),
+      successes: 0,
+      failures: 0,
+    });
   }
 
   return states;
@@ -603,9 +683,10 @@ async function runStudy(
           ci: wilsonScoreInterval(state.successes, total, contract.confidence),
           trialsEvaluated: total,
           sprtStoppedEarly: decision !== "continue" && total < contract.trials,
+          ...envelopeFields(state.envelope),
         };
-        // Judge contracts only, so a code contract's shape is byte-identical
-        // to what it was before this unit.
+        // `calibrated` stays judge-only, so a code contract carries nothing a
+        // judge contract needs and nothing the envelope does not.
         contractResults.push(
           contract.type === "judge" ? { ...result, calibrated: false } : result,
         );
@@ -627,6 +708,7 @@ async function runStudy(
         calibrated: true,
         ...(stopReason === null ? {} : { stopReason }),
         judgedRate,
+        ...envelopeFields(state.envelope),
       });
     }
   } finally {
@@ -671,12 +753,24 @@ export async function runSuite(
   // Apply multiple testing correction
   applyCorrection(config, studies);
 
-  // Determine suite status
-  const allResults = studies.flatMap((s) => s.contractResults);
+  // KTD7: the suite status is the rollup of the GATING contracts only, so an
+  // advisory judge reporting `fail` cannot flip the exit code (AE1). A suite
+  // with no gating contract at all is vacuously passing.
+  //
+  // The abort is the exception, and it is checked first. A study aborts when
+  // the agent blew through its error-rate ceiling, and that signal reaches the
+  // suite only through the per-contract statuses the filter just removed —
+  // without this, a crashed agent whose contracts are all advisory would exit
+  // 0. Agent availability is not judge calibration and keeps its own channel.
+  const gatingResults = studies
+    .flatMap((s) => s.contractResults)
+    .filter((r) => r.gating);
   let status: SuiteResult["status"];
-  if (allResults.some((r) => r.status === "fail")) {
+  if (studies.some((s) => s.aborted)) {
     status = "fail";
-  } else if (allResults.some((r) => r.status === "inconclusive")) {
+  } else if (gatingResults.some((r) => r.status === "fail")) {
+    status = "fail";
+  } else if (gatingResults.some((r) => r.status === "inconclusive")) {
     status = "inconclusive";
   } else {
     status = "pass";
@@ -698,7 +792,14 @@ function applyCorrection(
   const correction = config.raw.correction;
   if (correction === "none") return;
 
-  const allResults = studies.flatMap((s) => s.contractResults);
+  // KTD7: only gating contracts enter the family. A hypothesis that cannot
+  // drive the exit should not spend alpha budget on the ones that can, and it
+  // receives no corrected alpha of its own. This filter is also what keeps
+  // advisory contracts away from the BH proxy-p-value scheme below, which maps
+  // anything it does not recognise to 0.5 without saying so.
+  const allResults = studies
+    .flatMap((s) => s.contractResults)
+    .filter((r) => r.gating);
   const n = allResults.length;
   if (n <= 1) return;
 

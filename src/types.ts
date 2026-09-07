@@ -134,6 +134,31 @@ export interface ContractResult {
   readonly stopReason?: ContractStopReason;
   /** Calibrated contracts only: the raw rate the judge said pass at. */
   readonly judgedRate?: number;
+  /**
+   * Whether this contract may drive the exit code (R6, R11, KTD7). Code
+   * contracts are exact oracles and are always `true`; a judge contract is
+   * `true` only with an unmarked gold set and a `pass` certification.
+   *
+   * An advisory contract still reports the verdict it would have had — it is
+   * simply excluded from the suite-status rollup and from the
+   * multiple-comparison family, so it never spends alpha budget either.
+   */
+  readonly gating: boolean;
+  /**
+   * Why the contract runs advisory (R12). Present and non-empty exactly when
+   * `gating` is false; absent otherwise. Ordered as evaluated, and genuinely
+   * multi-valued — an undersized gold set is both marked and uncertifiable.
+   */
+  readonly advisoryReasons?: readonly AdvisoryReason[];
+  /** Human-labelled entries backing this contract. Absent with no gold set. */
+  readonly goldSetSize?: number;
+  /**
+   * R12's estimate: the TOTAL gold-set size that would bring the calibration
+   * floor under the gap, not the increment. Compare against `goldSetSize` for
+   * the number of additional labels. Present only when the floor is the reason
+   * and the estimate is defined.
+   */
+  readonly labelsNeeded?: number;
 }
 
 // ── Study & Suite results ────────────────────────────────────
@@ -231,6 +256,14 @@ export type GatingIneligibilityReason =
   | "marked-gold-set" // U4 marked the gold set; see `markingReason`
   | "certification" // the verdict is anything but `pass`
   | "calibration-floor"; // R10: the floor alone straddles the threshold
+
+/**
+ * Why a contract result runs advisory (R12). Three of the four come straight
+ * from `JudgeCertification.ineligibilityReasons`; `no-gold-set` cannot, because
+ * a contract with no labels at all is never certified and so has no
+ * ineligibility list to read.
+ */
+export type AdvisoryReason = "no-gold-set" | GatingIneligibilityReason;
 
 /** Percentile bootstrap interval on α, resampling gold-set units. */
 export interface AlphaInterval {
