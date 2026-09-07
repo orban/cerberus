@@ -1,0 +1,26 @@
+# A full-sized gold set the judge only half-ruled on. `certified.yaml` carries
+# 20 entries over two distinct scenarios; the scripted judge errors on GOLD-B,
+# so its 5 entries become missing ratings and only 15 units pair.
+#
+# Undersize is measured on the PAIRED units, so this certifies `contestable`
+# and runs advisory -- even though the gold set itself is the required 20
+# entries and is neither marked nor malformed. `goldSetSize` and `pairedUnits`
+# are what tell that apart from a gold set that was small to begin with.
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: partial-labels
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: half-judged-gold-set
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/certified.yaml
+        threshold: 0.50
+        confidence: 0.95
+        trials: 20

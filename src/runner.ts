@@ -387,7 +387,15 @@ interface GatingEnvelope {
   readonly gating: boolean;
   /** Non-empty exactly when `gating` is false. */
   readonly advisoryReasons: readonly AdvisoryReason[];
+  /** Human-labelled entries. `null` when the contract has no gold set. */
   readonly goldSetSize: number | null;
+  /** Entries the judge also ruled on — what undersize is measured on. */
+  readonly pairedUnits: number | null;
+  /**
+   * Meaningful only when `calibration-floor` is a reason, where `null` is its
+   * own answer: the threshold sits exactly on the band's centre and NO
+   * gold-set size separates it.
+   */
   readonly labelsNeeded: number | null;
 }
 
@@ -396,6 +404,7 @@ const GATING_CODE_CONTRACT: GatingEnvelope = {
   gating: true,
   advisoryReasons: [],
   goldSetSize: null,
+  pairedUnits: null,
   labelsNeeded: null,
 };
 
@@ -408,9 +417,15 @@ const NO_GOLD_SET: GatingEnvelope = {
   gating: false,
   advisoryReasons: ["no-gold-set"],
   goldSetSize: null,
+  pairedUnits: null,
   labelsNeeded: null,
 };
 
+/**
+ * Read straight off the certification the runner already holds. `certifyJudge`
+ * runs a 2000-resample bootstrap, so it is called once per contract and never
+ * re-derived from here.
+ */
 function envelopeFromCertification(
   certification: JudgeCertification,
 ): GatingEnvelope {
@@ -418,11 +433,21 @@ function envelopeFromCertification(
     gating: certification.gatingEligible,
     advisoryReasons: certification.ineligibilityReasons,
     goldSetSize: certification.goldSetSize,
+    pairedUnits: certification.agreement.pairedUnits,
     labelsNeeded: certification.labelsNeeded,
   };
 }
 
-/** The envelope's fields, shaped for the result. Absent rather than null. */
+/**
+ * The envelope's fields, shaped for the result.
+ *
+ * `labelsNeeded` is the one field whose ABSENCE and whose `null` mean different
+ * things, so its key tracks the reason rather than the value: present (possibly
+ * `null`) exactly when the calibration floor is why the contract is advisory,
+ * absent when the floor is not the reason at all. Collapsing the two would tell
+ * a reader "no estimate" in a case where the honest answer is "no gold-set size
+ * would do it".
+ */
 function envelopeFields(envelope: GatingEnvelope) {
   return {
     gating: envelope.gating,
@@ -432,9 +457,12 @@ function envelopeFields(envelope: GatingEnvelope) {
     ...(envelope.goldSetSize === null
       ? {}
       : { goldSetSize: envelope.goldSetSize }),
-    ...(envelope.labelsNeeded === null
+    ...(envelope.pairedUnits === null
       ? {}
-      : { labelsNeeded: envelope.labelsNeeded }),
+      : { pairedUnits: envelope.pairedUnits }),
+    ...(envelope.advisoryReasons.includes("calibration-floor")
+      ? { labelsNeeded: envelope.labelsNeeded }
+      : {}),
   };
 }
 

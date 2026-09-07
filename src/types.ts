@@ -153,12 +153,24 @@ export interface ContractResult {
   /** Human-labelled entries backing this contract. Absent with no gold set. */
   readonly goldSetSize?: number;
   /**
+   * Gold-set entries carrying BOTH a human label and a judge verdict — the
+   * count undersize is actually measured on, since a scenario the judge never
+   * ruled on certifies nothing. Below `goldSetSize` for a partially-judged gold
+   * set, equal to it for a complete one.
+   */
+  readonly pairedUnits?: number;
+  /**
    * R12's estimate: the TOTAL gold-set size that would bring the calibration
    * floor under the gap, not the increment. Compare against `goldSetSize` for
-   * the number of additional labels. Present only when the floor is the reason
-   * and the estimate is defined.
+   * the number of additional labels.
+   *
+   * Three states, all distinct. Present with a number: that many labels would
+   * separate the threshold. Present and `null`: the threshold sits exactly on
+   * the calibration band's centre, so NO gold-set size separates it — an
+   * answer, not a missing value. Absent: the calibration floor is not why this
+   * contract is advisory, so the question does not arise.
    */
-  readonly labelsNeeded?: number;
+  readonly labelsNeeded?: number | null;
 }
 
 // ── Study & Suite results ────────────────────────────────────

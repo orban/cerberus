@@ -435,24 +435,62 @@ describe("gating vs advisory envelope", () => {
     expect(sets.size).toBe(4);
 
     // R12's labels estimate rides along wherever the floor leaves a gap to
-    // close. 20 labels put the floor at +/- 0.144; closing to 0.05 needs 64.
+    // close. 20 labels put the floor at +/- 0.144; closing to 0.05 needs 64 --
+    // and this judge made no errors at all, so that figure comes from the
+    // exact inversion of the zero-count Wilson cell, not the normal
+    // approximation, which would have collapsed to zero.
     const floored = byName.get("floor-with-a-gap")!;
     expect(floored.goldSetSize).toBe(20);
+    expect(floored.pairedUnits).toBe(20);
     expect(floored.labelsNeeded).toBe(64);
 
-    // A threshold sitting exactly on the band's centre has no gap and so no
-    // estimate: no gold-set size separates it, and that is not reported as a
-    // very large number.
-    expect(byName.get("floor-too-wide")!.goldSetSize).toBe(20);
-    expect(byName.get("floor-too-wide")!.labelsNeeded).toBeUndefined();
+    // A threshold sitting exactly on the band's centre is its own answer, not
+    // a missing one: the key is PRESENT and null, because no gold-set size
+    // separates it. Absent would have said "the floor is not the reason".
+    const unseparable = byName.get("floor-too-wide")!;
+    expect(unseparable.goldSetSize).toBe(20);
+    expect(unseparable.labelsNeeded).toBeNull();
+    expect("labelsNeeded" in unseparable).toBe(true);
+
+    // Where the floor is not the reason, the question does not arise.
+    expect("labelsNeeded" in byName.get("weak-certification")!).toBe(false);
+    expect("labelsNeeded" in byName.get("no-labels")!).toBe(false);
 
     // A judge contract with no gold set has no size and no estimate to give.
     expect(byName.get("no-labels")!.goldSetSize).toBeUndefined();
-    expect(byName.get("no-labels")!.labelsNeeded).toBeUndefined();
+    expect(byName.get("no-labels")!.pairedUnits).toBeUndefined();
 
     // The suite is vacuously passing: nothing here may drive the exit.
     expect(result.status).toBe("pass");
   }, 60_000);
+
+  it("separates a partially-judged gold set from a small one", async () => {
+    // 20 entries over two scenarios; the judge errors on GOLD-B, so its five
+    // entries are missing ratings and only 15 units pair.
+    programJudge("half-judged-gold-set", (call) =>
+      call.scenarioInput === "GOLD-B" ? "error" : "pass",
+    );
+
+    const result = await runSuite(
+      await config("advisory-partial-labels-config.yaml"),
+      { json: false },
+    );
+    const contract = result.studies[0]!.contractResults[0]!;
+
+    // The gold set is full-sized, unmarked and well-formed. What refuses it is
+    // that only 15 units carry both a label and a verdict -- undersize is
+    // measured there, not on the entry count.
+    expect(contract.goldSetSize).toBe(20);
+    expect(contract.pairedUnits).toBe(15);
+    expect(contract.advisoryReasons).toEqual(["certification"]);
+    expect(contract.gating).toBe(false);
+
+    // It still gets a corrected estimate: the rectifier is what routes a
+    // contract to the calibrated path, not the verdict (R4 and R1 are
+    // separable). It simply cannot gate.
+    expect(contract.calibrated).toBe(true);
+    expect(result.status).toBe("pass");
+  }, 30_000);
 });
 
 // ── Progress display ─────────────────────────────────────────
