@@ -1,9 +1,26 @@
 import { describe, it, expect } from "vitest";
 import {
   krippendorffAlpha,
+  certifyJudge,
+  goldSetAgreement,
+  CERTIFICATION_PASS_ALPHA,
+  CERTIFICATION_MARGINAL_ALPHA,
   _coincidenceMatrix,
   type MeasurementLevel,
 } from "../src/calibration.js";
+import {
+  confusionFromPairs,
+  estimateRectifier,
+  labelsNeededForHalfWidth,
+  type GoldLabelledVerdict,
+} from "../src/correction.js";
+import { MINIMUM_GOLD_SET_SIZE } from "../src/config.js";
+import type {
+  GoldSet,
+  GoldSetEntry,
+  GoldSetLoadResult,
+  GoldSetMarkingReason,
+} from "../src/types.js";
 
 // ── Reference matrices ───────────────────────────────────────
 //
@@ -259,5 +276,459 @@ describe("krippendorffAlpha: input validation", () => {
         [1, 2],
       ]),
     ).toThrow(/ragged/);
+  });
+});
+
+// ── Certification verdict and floor guard (U5) ───────────────
+//
+// KTD5 puts the bands directly on judge-vs-human α. Every gold set below is
+// built from a 2x2 shape so its α is known in closed form: with one human
+// label and one judge verdict per unit, nominal α over n units is
+// `1 - (2n - 1) * d / (n0 * n1)`, where `d` counts disagreements and `n0`/`n1`
+// are the fail/pass marginals of the coincidence matrix. Each band test pins
+// the α it lands on as well as the verdict, so a band moving and the statistic
+// moving cannot be confused.
+
+interface GoldSetShape {
+  /** Human says pass, judge says pass. */
+  readonly bothPass: number;
+  /** Human says fail, judge says fail. */
+  readonly bothFail: number;
+  /** Human says pass, judge says fail. */
+  readonly falseNegatives: number;
+  /** Human says fail, judge says pass. */
+  readonly falsePositives: number;
+}
+
+interface BuiltGoldSet {
+  readonly goldSet: GoldSet;
+  readonly load: GoldSetLoadResult;
+  readonly judgeVerdicts: ReadonlyMap<string, boolean>;
+  readonly pairs: readonly GoldLabelledVerdict[];
+}
+
+const PROVENANCE = "random-sample-of-trial-population";
+
+function buildGoldSet(shape: GoldSetShape): BuiltGoldSet {
+  const entries: GoldSetEntry[] = [];
+  const judgeVerdicts = new Map<string, boolean>();
+  const pairs: GoldLabelledVerdict[] = [];
+
+  const add = (humanLabel: boolean, judgeVerdict: boolean): void => {
+    const scenario = `scenario-${entries.length}`;
+    entries.push({ scenario, label: humanLabel ? "pass" : "fail" });
+    judgeVerdicts.set(scenario, judgeVerdict);
+    pairs.push({ humanLabel, judgeVerdict });
+  };
+
+  for (let i = 0; i < shape.bothPass; i++) add(true, true);
+  for (let i = 0; i < shape.bothFail; i++) add(false, false);
+  for (let i = 0; i < shape.falseNegatives; i++) add(true, false);
+  for (let i = 0; i < shape.falsePositives; i++) add(false, true);
+
+  const goldSet: GoldSet = { provenance: PROVENANCE, entries };
+  return { goldSet, load: { marked: false, goldSet }, judgeVerdicts, pairs };
+}
+
+function mark(built: BuiltGoldSet, reason: GoldSetMarkingReason): GoldSetLoadResult {
+  return { marked: true, reason, message: `marked as ${reason}`, goldSet: built.goldSet };
+}
+
+// A threshold far outside any calibration band these gold sets produce, so the
+// floor guard stays silent and a test can isolate the α verdict.
+const NO_STRADDLE_THRESHOLD = 0.999;
+const ALPHA_C = 0.05;
+
+function certify(
+  built: BuiltGoldSet,
+  overrides: {
+    load?: GoldSetLoadResult;
+    threshold?: number;
+    judgedRate?: number;
+  } = {},
+) {
+  return certifyJudge({
+    goldSet: overrides.load ?? built.load,
+    judgeVerdicts: built.judgeVerdicts,
+    threshold: overrides.threshold ?? NO_STRADDLE_THRESHOLD,
+    alphaC: ALPHA_C,
+    ...(overrides.judgedRate === undefined ? {} : { judgedRate: overrides.judgedRate }),
+  });
+}
+
+describe("certifyJudge: verdict bands", () => {
+  it("certifies a high-agreement judge as pass", () => {
+    // d = 4 over n = 100, marginals 100/100: α = 1 − 199·4/10000 = 0.9204.
+    const built = buildGoldSet({
+      bothPass: 48,
+      bothFail: 48,
+      falseNegatives: 2,
+      falsePositives: 2,
+    });
+    const result = certify(built);
+
+    expect(result.agreement.alpha).toBeCloseTo(0.9204, 10);
+    expect(result.verdict).toBe("pass");
+    expect(result.gatingEligible).toBe(true);
+    expect(result.ineligibilityReasons).toEqual([]);
+    expect(result.goldSetSize).toBe(100);
+  });
+
+  it("covers AE5: a marginal verdict yields gating-ineligible with a certification reason", () => {
+    // d = 16 over n = 100, marginals 100/100: α = 1 − 199·16/10000 = 0.6816.
+    const built = buildGoldSet({
+      bothPass: 42,
+      bothFail: 42,
+      falseNegatives: 8,
+      falsePositives: 8,
+    });
+    const result = certify(built);
+
+    expect(result.agreement.alpha).toBeCloseTo(0.6816, 10);
+    expect(result.agreement.alpha!).toBeGreaterThanOrEqual(CERTIFICATION_MARGINAL_ALPHA);
+    expect(result.agreement.alpha!).toBeLessThan(CERTIFICATION_PASS_ALPHA);
+    expect(result.verdict).toBe("marginal");
+    expect(result.gatingEligible).toBe(false);
+    expect(result.ineligibilityReasons).toContain("certification");
+  });
+
+  it("covers AE2: a fail verdict yields gating-ineligible", () => {
+    // d = 30 over n = 100, marginals 100/100: α = 1 − 199·30/10000 = 0.403.
+    const built = buildGoldSet({
+      bothPass: 35,
+      bothFail: 35,
+      falseNegatives: 15,
+      falsePositives: 15,
+    });
+    const result = certify(built);
+
+    expect(result.agreement.alpha).toBeCloseTo(0.403, 10);
+    expect(result.verdict).toBe("fail");
+    expect(result.gatingEligible).toBe(false);
+    expect(result.ineligibilityReasons).toContain("certification");
+  });
+
+  it("yields contestable for a gold set below the minimum unit count", () => {
+    // 10 units of flawless agreement. The judge is not weak; there is simply
+    // not enough of a gold set to say so.
+    const built = buildGoldSet({
+      bothPass: 5,
+      bothFail: 5,
+      falseNegatives: 0,
+      falsePositives: 0,
+    });
+    expect(built.goldSet.entries.length).toBeLessThan(MINIMUM_GOLD_SET_SIZE);
+
+    const result = certify(built);
+
+    expect(result.verdict).toBe("contestable");
+    expect(result.gatingEligible).toBe(false);
+    expect(result.ineligibilityReasons).toContain("certification");
+    expect(result.goldSetSize).toBe(10);
+  });
+
+  it("yields contestable when too few gold-set units carry a judge verdict", () => {
+    // 24 human labels, but the judge only ruled on 15 of them: the units that
+    // certify anything are the paired ones.
+    const built = buildGoldSet({
+      bothPass: 12,
+      bothFail: 12,
+      falseNegatives: 0,
+      falsePositives: 0,
+    });
+    const partial = new Map(
+      [...built.judgeVerdicts].slice(0, 15) as readonly (readonly [string, boolean])[],
+    );
+
+    const result = certifyJudge({
+      goldSet: built.load,
+      judgeVerdicts: partial,
+      threshold: NO_STRADDLE_THRESHOLD,
+      alphaC: ALPHA_C,
+    });
+
+    expect(result.goldSetSize).toBe(24);
+    expect(result.agreement.pairedUnits).toBe(15);
+    expect(result.verdict).toBe("contestable");
+  });
+
+  it("reaches all four verdict values", () => {
+    const verdicts = new Set([
+      certify(
+        buildGoldSet({ bothPass: 48, bothFail: 48, falseNegatives: 2, falsePositives: 2 }),
+      ).verdict,
+      certify(
+        buildGoldSet({ bothPass: 42, bothFail: 42, falseNegatives: 8, falsePositives: 8 }),
+      ).verdict,
+      certify(
+        buildGoldSet({ bothPass: 35, bothFail: 35, falseNegatives: 15, falsePositives: 15 }),
+      ).verdict,
+      certify(
+        buildGoldSet({ bothPass: 5, bothFail: 5, falseNegatives: 0, falsePositives: 0 }),
+      ).verdict,
+    ]);
+
+    expect(verdicts).toEqual(new Set(["pass", "marginal", "fail", "contestable"]));
+  });
+});
+
+describe("certifyJudge: band edges", () => {
+  it("lands pass just above α = 0.800", () => {
+    // d = 10 over n = 100, marginals 100/100: α = 1 − 199·10/10000 = 0.801.
+    const built = buildGoldSet({
+      bothPass: 45,
+      bothFail: 45,
+      falseNegatives: 5,
+      falsePositives: 5,
+    });
+    const result = certify(built);
+
+    expect(result.agreement.alpha).toBeCloseTo(0.801, 10);
+    expect(result.agreement.alpha!).toBeGreaterThan(CERTIFICATION_PASS_ALPHA);
+    expect(result.verdict).toBe("pass");
+  });
+
+  it("lands marginal just below α = 0.800", () => {
+    // d = 11 over n = 100, marginals 99/101: α = 1 − 199·11/9999 = 0.78108.
+    const built = buildGoldSet({
+      bothPass: 45,
+      bothFail: 44,
+      falseNegatives: 6,
+      falsePositives: 5,
+    });
+    const result = certify(built);
+
+    expect(result.agreement.alpha).toBeCloseTo(1 - 2189 / 9999, 12);
+    expect(result.agreement.alpha!).toBeLessThan(CERTIFICATION_PASS_ALPHA);
+    expect(result.agreement.alpha!).toBeGreaterThanOrEqual(CERTIFICATION_MARGINAL_ALPHA);
+    expect(result.verdict).toBe("marginal");
+  });
+
+  it("lands fail just below α = 0.667", () => {
+    // d = 17 over n = 100, marginals 99/101: α = 1 − 199·17/9999 = 0.66167.
+    const built = buildGoldSet({
+      bothPass: 42,
+      bothFail: 41,
+      falseNegatives: 9,
+      falsePositives: 8,
+    });
+    const result = certify(built);
+
+    expect(result.agreement.alpha).toBeCloseTo(1 - 3383 / 9999, 12);
+    expect(result.agreement.alpha!).toBeLessThan(CERTIFICATION_MARGINAL_ALPHA);
+    expect(result.verdict).toBe("fail");
+  });
+
+  it("agrees with a directly computed α on the same gold set", () => {
+    const built = buildGoldSet({
+      bothPass: 45,
+      bothFail: 45,
+      falseNegatives: 5,
+      falsePositives: 5,
+    });
+
+    const direct = goldSetAgreement(built.goldSet.entries, built.judgeVerdicts);
+    expect(direct.defined).toBe(true);
+    expect(certify(built).agreement.alpha).toBe(direct.alpha);
+  });
+});
+
+describe("certifyJudge: undefined α", () => {
+  it("passes a gold set with zero disagreements and perfect agreement", () => {
+    // Every unit is a pass, so expected disagreement is zero and α is
+    // undefined. That is the healthy-suite case, not a weak judge.
+    const built = buildGoldSet({
+      bothPass: 24,
+      bothFail: 0,
+      falseNegatives: 0,
+      falsePositives: 0,
+    });
+    // This gold set anchors at a judged rate of 1.0, so the shared
+    // no-straddle threshold sits inside its floor. Use one well below the band
+    // instead, to isolate the α verdict from the floor guard.
+    const result = certify(built, { threshold: 0.5 });
+
+    expect(result.agreement.alpha).toBeNull();
+    expect(result.agreement.undefinedReason).toBe("no-expected-disagreement");
+    expect(result.agreement.disagreements).toBe(0);
+    expect(result.verdict).toBe("pass");
+    expect(result.gatingEligible).toBe(true);
+  });
+
+  it("gives α = 1 and pass when both labels appear and nothing disagrees", () => {
+    const built = buildGoldSet({
+      bothPass: 12,
+      bothFail: 12,
+      falseNegatives: 0,
+      falsePositives: 0,
+    });
+    const result = certify(built);
+
+    expect(result.agreement.alpha).toBe(1);
+    expect(result.verdict).toBe("pass");
+  });
+});
+
+describe("certifyJudge: marked gold sets", () => {
+  it("refuses gating for a marked gold set whatever its verdict", () => {
+    const built = buildGoldSet({
+      bothPass: 48,
+      bothFail: 48,
+      falseNegatives: 2,
+      falsePositives: 2,
+    });
+    const result = certify(built, { load: mark(built, "unprovenanced") });
+
+    expect(result.verdict).toBe("pass");
+    expect(result.gatingEligible).toBe(false);
+    expect(result.ineligibilityReasons).toContain("marked-gold-set");
+    expect(result.markingReason).toBe("unprovenanced");
+  });
+
+  it("handles a malformed marking that carries no gold set at all", () => {
+    const result = certifyJudge({
+      goldSet: { marked: true, reason: "malformed", message: "not YAML" },
+      judgeVerdicts: new Map(),
+      threshold: 0.8,
+      alphaC: ALPHA_C,
+    });
+
+    expect(result.goldSetSize).toBe(0);
+    expect(result.verdict).toBe("contestable");
+    expect(result.gatingEligible).toBe(false);
+    expect(result.rectifier).toBeNull();
+    expect(result.floorHalfWidth).toBeNull();
+  });
+});
+
+describe("certifyJudge: floor guard (R10)", () => {
+  // 20 labels, one error each way: α = 1 − 39·2/(18·22) = 0.80303, so the
+  // judge certifies `pass` and only the floor can refuse it.
+  const straddling = buildGoldSet({
+    bothPass: 10,
+    bothFail: 8,
+    falseNegatives: 1,
+    falsePositives: 1,
+  });
+
+  it("covers AE7: refuses to gate before trial 1 with a labels-needed figure", () => {
+    const result = certify(straddling, { threshold: 0.7 });
+
+    expect(result.verdict).toBe("pass");
+    expect(result.agreement.alpha).toBeCloseTo(1 - 78 / 396, 12);
+    expect(result.floorStraddlesThreshold).toBe(true);
+    expect(result.gatingEligible).toBe(false);
+    expect(result.ineligibilityReasons).toContain("calibration-floor");
+
+    expect(result.labelsNeeded).not.toBeNull();
+    expect(Number.isInteger(result.labelsNeeded)).toBe(true);
+    expect(result.labelsNeeded!).toBeGreaterThan(result.goldSetSize);
+  });
+
+  it("reports the labels needed to bring the floor under the threshold gap", () => {
+    const result = certify(straddling, { threshold: 0.7 });
+    const counts = confusionFromPairs(straddling.pairs);
+    const rectifier = estimateRectifier(counts, ALPHA_C);
+    const centre =
+      result.anchorRate! + (rectifier.interval.lower + rectifier.interval.upper) / 2;
+    const gap = Math.abs(centre - 0.7);
+
+    expect(result.labelsNeeded).toBe(labelsNeededForHalfWidth(counts, gap, ALPHA_C));
+  });
+
+  it("anchors the band on the judge's own gold-set pass rate before trial 1", () => {
+    // 10 true positives + 1 false positive out of 20 units.
+    expect(certify(straddling, { threshold: 0.7 }).anchorRate).toBeCloseTo(0.55, 12);
+  });
+
+  it("lets the caller override the anchor with an observed judged rate", () => {
+    const result = certify(straddling, { threshold: 0.7, judgedRate: 0.2 });
+    expect(result.anchorRate).toBe(0.2);
+    expect(result.floorStraddlesThreshold).toBe(false);
+    expect(result.gatingEligible).toBe(true);
+    expect(result.labelsNeeded).toBeNull();
+  });
+
+  it("gates when the floor clears the threshold", () => {
+    const result = certify(straddling, { threshold: 0.999 });
+
+    expect(result.floorStraddlesThreshold).toBe(false);
+    expect(result.gatingEligible).toBe(true);
+    expect(result.labelsNeeded).toBeNull();
+  });
+
+  it("reports the floor U2 estimates for the same gold set", () => {
+    const built = buildGoldSet({
+      bothPass: 45,
+      bothFail: 45,
+      falseNegatives: 5,
+      falsePositives: 5,
+    });
+    const expected = estimateRectifier(confusionFromPairs(built.pairs), ALPHA_C);
+    const result = certify(built);
+
+    expect(result.floorHalfWidth).toBe(expected.halfWidth);
+    expect(result.rectifier).toEqual(expected);
+  });
+});
+
+describe("certifyJudge: α interval diagnostic", () => {
+  it("attaches a bootstrap interval around a defined α", () => {
+    const built = buildGoldSet({
+      bothPass: 45,
+      bothFail: 45,
+      falseNegatives: 5,
+      falsePositives: 5,
+    });
+    const { interval } = certify(built).agreement;
+
+    expect(interval).not.toBeNull();
+    expect(interval!.lower).toBeLessThanOrEqual(interval!.upper);
+    expect(interval!.confidence).toBeCloseTo(0.95, 12);
+    expect(interval!.resamples).toBeGreaterThan(0);
+  });
+
+  it("is deterministic across calls", () => {
+    const built = buildGoldSet({
+      bothPass: 45,
+      bothFail: 45,
+      falseNegatives: 5,
+      falsePositives: 5,
+    });
+
+    expect(certify(built).agreement.interval).toEqual(
+      certify(built).agreement.interval,
+    );
+  });
+
+  it("has no interval when α itself is undefined", () => {
+    const built = buildGoldSet({
+      bothPass: 24,
+      bothFail: 0,
+      falseNegatives: 0,
+      falsePositives: 0,
+    });
+
+    expect(certify(built).agreement.interval).toBeNull();
+  });
+});
+
+describe("certifyJudge: input validation", () => {
+  it("throws on an alphaC outside (0,1)", () => {
+    const built = buildGoldSet({
+      bothPass: 12,
+      bothFail: 12,
+      falseNegatives: 0,
+      falsePositives: 0,
+    });
+
+    expect(() =>
+      certifyJudge({
+        goldSet: built.load,
+        judgeVerdicts: built.judgeVerdicts,
+        threshold: 0.8,
+        alphaC: 0,
+      }),
+    ).toThrow(/alphaC/);
   });
 });

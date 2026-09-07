@@ -9,6 +9,26 @@
 // form tested against the canonical worked example (nominal 0.691, interval
 // 0.811). No new runtime dependency: this is ~80 lines of arithmetic.
 
+import { MINIMUM_GOLD_SET_SIZE } from "./config.js";
+import {
+  calibrationFloorStraddles,
+  confusionFromPairs,
+  estimateRectifier,
+  labelsNeededForHalfWidth,
+  type ConfusionCounts,
+  type GoldLabelledVerdict,
+  type RectifierEstimate,
+} from "./correction.js";
+import type {
+  AlphaDiagnostics,
+  AlphaInterval,
+  CertificationVerdict,
+  GatingIneligibilityReason,
+  GoldSetEntry,
+  GoldSetLoadResult,
+  JudgeCertification,
+} from "./types.js";
+
 // ── Types ────────────────────────────────────────────────────
 
 /** Rows are raters, columns are units. `null` is a missing rating. */
@@ -226,6 +246,280 @@ export function krippendorffAlpha(
     ...counts,
     defined: true,
     alpha: 1 - ((pairableValues - 1) * observed) / expected,
+  };
+}
+
+// ── Bootstrap interval on alpha ──────────────────────────────
+
+const ALPHA_BOOTSTRAP_RESAMPLES = 2000;
+const ALPHA_BOOTSTRAP_CONFIDENCE = 0.95;
+// Any fixed seed will do; the point is that two calls on the same gold set
+// report the same interval, so a diagnostic never moves on its own.
+const ALPHA_BOOTSTRAP_SEED = 0x9e3779b9;
+
+/** mulberry32: a seeded PRNG in four lines, so the bootstrap adds no dependency. */
+function mulberry32(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export interface BootstrapOptions {
+  readonly confidence?: number;
+  readonly resamples?: number;
+  readonly seed?: number;
+}
+
+/**
+ * Percentile bootstrap on alpha, resampling UNITS (columns) with replacement.
+ * Units are the independent objects here, not individual ratings: resampling
+ * ratings would break the pairing that alpha is computed over.
+ *
+ * Returns `null` when fewer than two resamples produced a defined alpha —
+ * near-constant gold sets routinely resample into zero expected disagreement,
+ * and a percentile over one point is not an interval.
+ */
+export function bootstrapAlphaInterval(
+  data: ReliabilityMatrix,
+  level: MeasurementLevel = "nominal",
+  options: BootstrapOptions = {},
+): AlphaInterval | null {
+  const confidence = options.confidence ?? ALPHA_BOOTSTRAP_CONFIDENCE;
+  const resamples = options.resamples ?? ALPHA_BOOTSTRAP_RESAMPLES;
+  const units = data[0]?.length ?? 0;
+  if (units === 0 || resamples < 2) return null;
+
+  const random = mulberry32(options.seed ?? ALPHA_BOOTSTRAP_SEED);
+  const alphas: number[] = [];
+
+  for (let b = 0; b < resamples; b++) {
+    const picks = Array.from({ length: units }, () =>
+      Math.min(units - 1, Math.floor(random() * units)),
+    );
+    const resampled = data.map((row) => picks.map((u) => row[u] ?? null));
+    const agreement = krippendorffAlpha(resampled, level);
+    if (agreement.defined) alphas.push(agreement.alpha);
+  }
+
+  if (alphas.length < 2) return null;
+
+  alphas.sort((a, b) => a - b);
+  const tail = (1 - confidence) / 2;
+  const last = alphas.length - 1;
+  return {
+    lower: alphas[Math.floor(tail * last)]!,
+    upper: alphas[Math.ceil((1 - tail) * last)]!,
+    confidence,
+    resamples: alphas.length,
+  };
+}
+
+// ── Judge certification (KTD5) ───────────────────────────────
+//
+// The bands sit directly on judge-vs-human alpha, at Krippendorff's published
+// cutoffs. The gap rule the leakeval reference uses does not survive the port:
+// it scores a judge by the distance between judge-vs-human alpha and a
+// human-human baseline, and that baseline needs two human raters per unit.
+// A Cerberus gold set carries one label per scenario, so the ported rule would
+// return insufficient-data for every gold set that can be loaded.
+//
+// `contestable` therefore means undefined-or-undersized here, NOT leakeval's
+// low-human-agreement sense.
+
+/** Krippendorff's cutoff for relying on data. */
+export const CERTIFICATION_PASS_ALPHA = 0.8;
+/** Krippendorff's cutoff for drawing tentative conclusions. */
+export const CERTIFICATION_MARGINAL_ALPHA = 0.667;
+
+// Both raters are binary, so the encoding only has to be stable: on a
+// two-valued scale nominal, ordinal and interval alpha coincide.
+const ENCODED_PASS = 1;
+const ENCODED_FAIL = 0;
+
+function encode(pass: boolean): number {
+  return pass ? ENCODED_PASS : ENCODED_FAIL;
+}
+
+/**
+ * Row 1 is the human labels, row 2 the judge's verdicts on the same scenarios.
+ * A scenario the judge did not rule on becomes a missing rating rather than a
+ * dropped column, so the unit still counts toward the gold set's size.
+ */
+function reliabilityMatrix(
+  entries: readonly GoldSetEntry[],
+  judgeVerdicts: ReadonlyMap<string, boolean>,
+): ReliabilityMatrix {
+  const human: (number | null)[] = [];
+  const judge: (number | null)[] = [];
+
+  for (const entry of entries) {
+    human.push(encode(entry.label === "pass"));
+    const verdict = judgeVerdicts.get(entry.scenario);
+    judge.push(verdict === undefined ? null : encode(verdict));
+  }
+
+  return [human, judge];
+}
+
+/** Judge-vs-human agreement over a gold set, on the nominal scale. */
+export function goldSetAgreement(
+  entries: readonly GoldSetEntry[],
+  judgeVerdicts: ReadonlyMap<string, boolean>,
+): Agreement {
+  return krippendorffAlpha(reliabilityMatrix(entries, judgeVerdicts), "nominal");
+}
+
+function goldLabelledVerdicts(
+  entries: readonly GoldSetEntry[],
+  judgeVerdicts: ReadonlyMap<string, boolean>,
+): GoldLabelledVerdict[] {
+  const pairs: GoldLabelledVerdict[] = [];
+
+  for (const entry of entries) {
+    const judgeVerdict = judgeVerdicts.get(entry.scenario);
+    if (judgeVerdict === undefined) continue;
+    pairs.push({ humanLabel: entry.label === "pass", judgeVerdict });
+  }
+
+  return pairs;
+}
+
+/**
+ * The size check reads PAIRED units, not gold-set entries: a scenario the
+ * judge never ruled on certifies nothing. On a complete gold set the two are
+ * the same number.
+ */
+function verdictFromAgreement(
+  agreement: Agreement,
+  disagreements: number,
+): CertificationVerdict {
+  if (agreement.validUnits < MINIMUM_GOLD_SET_SIZE) return "contestable";
+
+  if (agreement.defined) {
+    if (agreement.alpha >= CERTIFICATION_PASS_ALPHA) return "pass";
+    if (agreement.alpha >= CERTIFICATION_MARGINAL_ALPHA) return "marginal";
+    return "fail";
+  }
+
+  // Undefined alpha is not evidence of a weak judge. A gold set the judge and
+  // the human never disagreed on has zero expected disagreement and therefore
+  // no alpha — the common healthy-suite case, and a pass. Anything else that
+  // leaves alpha undefined has not measured the judge at all.
+  return disagreements === 0 ? "pass" : "contestable";
+}
+
+/**
+ * The floor stops straddling once its half-width falls under the distance from
+ * the calibration band's centre to the threshold, so that distance is the
+ * target handed to the labels-needed solver. A threshold sitting exactly on the
+ * centre has no such target: no gold-set size separates it, and the figure is
+ * reported as absent rather than as infinity.
+ */
+function labelsToClearFloor(
+  counts: ConfusionCounts,
+  rectifier: RectifierEstimate,
+  anchorRate: number,
+  threshold: number,
+  alphaC: number,
+): number | null {
+  const centre =
+    anchorRate + (rectifier.interval.lower + rectifier.interval.upper) / 2;
+  const gap = Math.abs(centre - threshold);
+  if (!(gap > 0)) return null;
+
+  return labelsNeededForHalfWidth(counts, gap, alphaC);
+}
+
+export interface CertificationOptions {
+  /** U4's load result. A marked gold set can never gate, whatever its alpha. */
+  readonly goldSet: GoldSetLoadResult;
+  /** The judge's verdict on each gold-set scenario, keyed by scenario. */
+  readonly judgeVerdicts: ReadonlyMap<string, boolean>;
+  /** The contract's pass-rate threshold, for the R10 floor guard. */
+  readonly threshold: number;
+  /** The two-sided level the calibration interval is built at. */
+  readonly alphaC: number;
+  /**
+   * The judged rate the calibration band hangs off. Before the first trial
+   * there is no such rate, so it defaults to the judge's own pass rate over the
+   * gold set — legitimate only because the correction already assumes the gold
+   * set is drawn from the trial population. Callers holding a running judged
+   * rate should pass it.
+   */
+  readonly judgedRate?: number;
+}
+
+/**
+ * Whether a judge may gate, decided before trial 1 (R2, R6, R10).
+ *
+ * Weak judges are refused twice, per KD6: the alpha bands refuse them up front,
+ * and the floor guard refuses them again when the calibration interval alone
+ * cannot separate the threshold. The two are distinct statistics off the same
+ * small gold set, so passing one does not bound the other.
+ */
+export function certifyJudge(options: CertificationOptions): JudgeCertification {
+  const { goldSet: load, judgeVerdicts, threshold, alphaC } = options;
+  if (!(alphaC > 0 && alphaC < 1)) {
+    throw new RangeError(`alphaC must be in (0,1), got ${alphaC}`);
+  }
+
+  const entries = load.goldSet?.entries ?? [];
+  const matrix = reliabilityMatrix(entries, judgeVerdicts);
+  const agreement = krippendorffAlpha(matrix, "nominal");
+  const pairs = goldLabelledVerdicts(entries, judgeVerdicts);
+  const disagreements = pairs.filter(
+    (pair) => pair.humanLabel !== pair.judgeVerdict,
+  ).length;
+
+  const diagnostics: AlphaDiagnostics = {
+    alpha: agreement.defined ? agreement.alpha : null,
+    undefinedReason: agreement.defined ? null : agreement.reason,
+    interval: agreement.defined ? bootstrapAlphaInterval(matrix, "nominal") : null,
+    pairedUnits: agreement.validUnits,
+    disagreements,
+  };
+
+  const verdict = verdictFromAgreement(agreement, disagreements);
+
+  const counts = pairs.length > 0 ? confusionFromPairs(pairs) : null;
+  const rectifier = counts === null ? null : estimateRectifier(counts, alphaC);
+  const anchorRate =
+    options.judgedRate ??
+    (counts === null ? null : (counts.tp + counts.fp) / pairs.length);
+
+  const floorStraddlesThreshold =
+    rectifier !== null &&
+    anchorRate !== null &&
+    calibrationFloorStraddles(anchorRate, rectifier.interval, threshold);
+
+  const labelsNeeded =
+    floorStraddlesThreshold && counts !== null && rectifier !== null && anchorRate !== null
+      ? labelsToClearFloor(counts, rectifier, anchorRate, threshold, alphaC)
+      : null;
+
+  const ineligibilityReasons: GatingIneligibilityReason[] = [];
+  if (load.marked) ineligibilityReasons.push("marked-gold-set");
+  if (verdict !== "pass") ineligibilityReasons.push("certification");
+  if (floorStraddlesThreshold) ineligibilityReasons.push("calibration-floor");
+
+  return {
+    verdict,
+    gatingEligible: ineligibilityReasons.length === 0,
+    ineligibilityReasons,
+    markingReason: load.marked ? load.reason : null,
+    agreement: diagnostics,
+    goldSetSize: entries.length,
+    rectifier,
+    floorHalfWidth: rectifier?.halfWidth ?? null,
+    floorStraddlesThreshold,
+    anchorRate,
+    labelsNeeded,
+    threshold,
+    alphaC,
   };
 }
 

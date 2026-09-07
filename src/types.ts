@@ -1,3 +1,6 @@
+import type { UndefinedAgreementReason } from "./calibration.js";
+import type { RectifierEstimate } from "./correction.js";
+
 // ── Trial types ──────────────────────────────────────────────
 
 export interface TrialMeta {
@@ -150,6 +153,68 @@ export type GoldSetLoadResult = UnmarkedGoldSet | MarkedGoldSet;
 export interface AlphaSplitConfig {
   readonly alpha_c: number;
   readonly alpha_a: number;
+}
+
+// ── Judge certification (R2, R6, R10) ────────────────────────
+// Produced by `src/calibration.ts` before the first trial runs. The verdict
+// answers "is this judge measured well enough to be believed"; `gatingEligible`
+// answers "may it drive the exit code", which is strictly stronger — a marked
+// gold set or a calibration floor too wide to separate the threshold refuses a
+// judge that certified `pass`.
+
+/** KTD5's pre-committed bands on judge-vs-human α. */
+export type CertificationVerdict = "pass" | "marginal" | "fail" | "contestable";
+
+/** Why a judge contract runs advisory. Multiple reasons can hold at once. */
+export type GatingIneligibilityReason =
+  | "marked-gold-set" // U4 marked the gold set; see `markingReason`
+  | "certification" // the verdict is anything but `pass`
+  | "calibration-floor"; // R10: the floor alone straddles the threshold
+
+/** Percentile bootstrap interval on α, resampling gold-set units. */
+export interface AlphaInterval {
+  readonly lower: number;
+  readonly upper: number;
+  readonly confidence: number;
+  /** Resamples whose α was defined. The percentiles are taken over these. */
+  readonly resamples: number;
+}
+
+/**
+ * α reported as a diagnostic, never compared as a bare point estimate. `alpha`
+ * is `null` exactly when `undefinedReason` is set: an unmeasured judge is not
+ * a badly measured one.
+ */
+export interface AlphaDiagnostics {
+  readonly alpha: number | null;
+  readonly undefinedReason: UndefinedAgreementReason | null;
+  readonly interval: AlphaInterval | null;
+  /** Gold-set units carrying both a human label and a judge verdict. */
+  readonly pairedUnits: number;
+  /** Paired units where the judge and the human differed. */
+  readonly disagreements: number;
+}
+
+export interface JudgeCertification {
+  readonly verdict: CertificationVerdict;
+  readonly gatingEligible: boolean;
+  /** Empty if and only if `gatingEligible`. Ordered as evaluated. */
+  readonly ineligibilityReasons: readonly GatingIneligibilityReason[];
+  readonly markingReason: GoldSetMarkingReason | null;
+  readonly agreement: AlphaDiagnostics;
+  /** Human-labelled entries in the gold set, paired or not. */
+  readonly goldSetSize: number;
+  /** The rectifier this gold set implies; `null` when no unit was pairable. */
+  readonly rectifier: RectifierEstimate | null;
+  /** The calibration floor: half the rectifier interval's width. */
+  readonly floorHalfWidth: number | null;
+  readonly floorStraddlesThreshold: boolean;
+  /** The judged rate the calibration band was anchored on. */
+  readonly anchorRate: number | null;
+  /** Gold-set size that would bring the floor under the gap. R12's estimate. */
+  readonly labelsNeeded: number | null;
+  readonly threshold: number;
+  readonly alphaC: number;
 }
 
 // ── Config types (inferred from Zod in config.ts) ────────────
