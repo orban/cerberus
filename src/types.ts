@@ -1,5 +1,6 @@
 import type { UndefinedAgreementReason } from "./calibration.js";
-import type { RectifierEstimate } from "./correction.js";
+import type { RectifierEstimate, RectifierInterval } from "./correction.js";
+import type { ConfidenceSequenceState } from "./sequence.js";
 
 // ── Trial types ──────────────────────────────────────────────
 
@@ -63,16 +64,76 @@ export interface ConfidenceInterval {
   readonly n: number;
 }
 
+// ── Calibrated sequential state (KTD4) ───────────────────────
+// Judge contracts backed by a gold set get their own sequential state rather
+// than an extended `SPRTState`. `SPRTState` carries Wald boundaries and a
+// two-way decision; it has no vocabulary for a calibration floor or for a
+// stop that is terminal without being decisive. Code contracts and
+// uncalibrated judge contracts keep the SPRT path untouched.
+
+/**
+ * `inconclusive` is the third TERMINAL value `SPRTDecision` lacks: the
+ * contract has stopped and will observe nothing further, but neither side of
+ * the threshold was established. Everything that is not `continue` is
+ * terminal, so the runner's existing `decision !== "continue"` skip freezes a
+ * stopped judge contract through the same branch that freezes a decided SPRT.
+ */
+export type ContractDecision = "continue" | "accept" | "reject" | "inconclusive";
+
+/**
+ * How a calibrated contract stopped (R9). The two inconclusive reasons are a
+ * diagnosis, not a label: `label-limited` means the calibration interval alone
+ * straddles the threshold, so only more gold labels can resolve it;
+ * `sampling-limited` means the budget ran out while a decision was still
+ * reachable, so more trials would.
+ */
+export type ContractStopReason =
+  | "decisive"
+  | "label-limited"
+  | "sampling-limited";
+
+export interface CalibratedState {
+  /** The sampling term: shrinks with trials. */
+  readonly sequence: ConfidenceSequenceState;
+  /** The calibration term on `delta`. Fixed for the run; trials never shrink it. */
+  readonly calibration: RectifierInterval;
+  /** The rectifier's point estimate: corrected = judged + delta. */
+  readonly delta: number;
+  readonly decision: ContractDecision;
+  /** Set exactly when `decision !== "continue"`. */
+  readonly stopReason: ContractStopReason | null;
+  /** Non-error trials folded in. Error verdicts advance nothing (KTD8). */
+  readonly observations: number;
+  readonly judgedSuccesses: number;
+  /** The corrected interval: sampling + calibration, summed on endpoints. */
+  readonly interval: ConfidenceInterval;
+}
+
 // ── Contract result (post-SPRT aggregation) ──────────────────
 
 export interface ContractResult {
   readonly contractName: string;
   readonly status: "pass" | "fail" | "inconclusive";
+  /**
+   * For a calibrated judge contract this is the BIAS-CORRECTED true-rate
+   * estimate (R4), not the judged rate; `judgedRate` carries the raw figure.
+   * For every other contract it is the observed pass rate, unchanged.
+   */
   readonly observedRate: number;
   readonly ci: ConfidenceInterval;
   readonly trialsEvaluated: number;
   readonly sprtStoppedEarly: boolean;
   readonly correctedAlpha?: number;
+  /**
+   * Judge contracts only, so a code contract's result shape is untouched.
+   * `false` marks a judge contract running on the raw judged rate for want of
+   * a usable gold set.
+   */
+  readonly calibrated?: boolean;
+  /** Calibrated contracts only. Absent while a contract never stopped. */
+  readonly stopReason?: ContractStopReason;
+  /** Calibrated contracts only: the raw rate the judge said pass at. */
+  readonly judgedRate?: number;
 }
 
 // ── Study & Suite results ────────────────────────────────────

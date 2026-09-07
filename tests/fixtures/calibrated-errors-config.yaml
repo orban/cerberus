@@ -1,0 +1,23 @@
+# KTD8: the scripted judge succeeds on the gold-set scenarios (so the contract
+# certifies and reaches the calibrated path) and then errors on every trial.
+# Error verdicts are judge-availability noise, not accuracy evidence: they
+# advance neither the confidence sequence nor the trial count, so the run ends
+# with zero observations and no decision.
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: judge-errors
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: all-errors
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/certified.yaml
+        threshold: 0.50
+        confidence: 0.80
+        trials: 10

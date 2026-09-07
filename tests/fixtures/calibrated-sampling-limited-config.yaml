@@ -1,0 +1,22 @@
+# AE6: an 8-trial budget is not enough for the sampling term to shrink past the
+# threshold, but a decision was still reachable -- the calibration interval
+# alone does NOT straddle 0.50 at the running judged rate of 1.0. The budget
+# runs out first, so the stop is sampling-limited, not label-limited.
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: sampling-limited
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: budget-exhausted
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/certified.yaml
+        threshold: 0.50
+        confidence: 0.80
+        trials: 8

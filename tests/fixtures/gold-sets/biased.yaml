@@ -1,0 +1,28 @@
+# A gold set for a judge that over-passes. The scripted judge passes GOLD-A and
+# fails GOLD-B, but four GOLD-A units are labelled `fail` by the human, so the
+# confusion matrix is tp=14, fp=4, tn=2, fn=0. delta = (0 - 4) / 20 = -0.20:
+# the corrected rate sits 0.20 BELOW the judged rate, which is the direction an
+# over-passing judge implies.
+provenance: random-sample-of-trial-population
+
+entries:
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: fail }
+  - { scenario: scenarios/gold-a.yaml, label: fail }
+  - { scenario: scenarios/gold-a.yaml, label: fail }
+  - { scenario: scenarios/gold-a.yaml, label: fail }
+  - { scenario: scenarios/gold-b.yaml, label: fail }
+  - { scenario: scenarios/gold-b.yaml, label: fail }

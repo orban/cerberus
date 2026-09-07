@@ -1,14 +1,21 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import pc from "picocolors";
-import type { SuiteResult, StudyResult, ContractResult, SPRTState } from "./types.js";
+import type { SuiteResult, StudyResult, ContractResult, ContractDecision } from "./types.js";
 
 const isCI = !!process.env.CI;
 
 // ── Progress display ─────────────────────────────────────────
 
-interface ContractStateInfo {
-  readonly sprtState: SPRTState;
+/**
+ * What the progress line needs from a contract, and nothing more. A calibrated
+ * judge contract has no `SPRTState` to hand over -- it tracks a confidence
+ * sequence and a three-way stop instead -- so the display reads the decision
+ * directly rather than reaching through a state type only half the contracts
+ * have.
+ */
+export interface ContractProgressState {
+  readonly decision: ContractDecision;
   readonly successes: number;
   readonly failures: number;
 }
@@ -17,12 +24,12 @@ export function displayProgress(
   studyName: string,
   trial: number,
   maxTrials: number,
-  contractStates: Map<string, ContractStateInfo>,
+  contractStates: ReadonlyMap<string, ContractProgressState>,
 ): void {
   if (isCI) {
     // CI mode: simple line logging
     const decided = [...contractStates.values()].filter(
-      (s) => s.sprtState.decision !== "continue",
+      (s) => s.decision !== "continue",
     ).length;
     process.stderr.write(
       `  ${studyName}: trial ${trial}/${maxTrials} (${decided}/${contractStates.size} contracts decided)\n`,
@@ -35,7 +42,7 @@ export function displayProgress(
   const filled = Math.round((trial / maxTrials) * barWidth);
   const bar = "\u2588".repeat(filled) + "\u2591".repeat(barWidth - filled);
   const decided = [...contractStates.values()].filter(
-    (s) => s.sprtState.decision !== "continue",
+    (s) => s.decision !== "continue",
   ).length;
 
   const sprtLabel =

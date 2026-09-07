@@ -1,0 +1,23 @@
+# AE4: the pre-trial floor guard admits this contract (the gold set's own
+# judged rate is 0.75, comfortably clear of the 0.50 threshold), but the
+# scripted judge alternates pass/fail so the running judged rate drifts to
+# 0.50 -- where the +/- 0.144 calibration interval alone straddles the
+# threshold. It stops label-limited at trial 50, the minimum this stop needs.
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: label-limited
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: drifts-into-floor
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/certified.yaml
+        threshold: 0.50
+        confidence: 0.80
+        trials: 60
