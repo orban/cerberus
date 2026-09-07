@@ -47,7 +47,13 @@ import {
   updateConfidenceSequence,
 } from "./sequence.js";
 import { evaluateContract } from "./contracts.js";
-import { displayProgress, type ContractProgressState } from "./output.js";
+import {
+  displayProgress,
+  displayJudgeDisclosure,
+  displayNoGoldSetWarning,
+  type ContractProgressState,
+  type JudgeDisclosure,
+} from "./output.js";
 
 const MAX_STDOUT_BYTES = 1024 * 1024; // 1MB
 
@@ -471,6 +477,13 @@ function envelopeFields(envelope: GatingEnvelope) {
 interface SPRTContractState {
   readonly kind: "sprt";
   readonly envelope: GatingEnvelope;
+  /**
+   * `null` for a code contract and for a judge contract with no gold set --
+   * neither was certified. A judge contract whose gold set paired nothing runs
+   * on the SPRT path but WAS certified, and the pre-run disclosure needs its
+   * floor, so the certification is kept here rather than discarded.
+   */
+  readonly certification: JudgeCertification | null;
   readonly sprtConfig: SPRTConfig;
   sprtState: SPRTState;
   successes: number;
@@ -498,6 +511,7 @@ function contractDecision(state: ContractState): ContractDecision {
 function newSPRTState(
   contract: ContractConfig,
   envelope: GatingEnvelope,
+  certification: JudgeCertification | null = null,
 ): SPRTContractState {
   const sprtConfig = sprtConfigFromContract(
     contract.threshold,
@@ -506,6 +520,7 @@ function newSPRTState(
   return {
     kind: "sprt",
     envelope,
+    certification,
     sprtConfig,
     sprtState: createSPRT(sprtConfig),
     successes: 0,
@@ -553,7 +568,10 @@ async function initContractStates(
     // certification is what decides gating, not which sequential path ran.
     const rectifier = certification.rectifier;
     if (rectifier === null) {
-      states.set(contract.name, newSPRTState(contract, envelope));
+      states.set(
+        contract.name,
+        newSPRTState(contract, envelope, certification),
+      );
       continue;
     }
 
@@ -568,6 +586,38 @@ async function initContractStates(
   }
 
   return states;
+}
+
+/**
+ * The certification facts a user needs BEFORE the trial loop spends a budget of
+ * judge calls: how many labels back each judge contract, how wide the floor
+ * those labels imply is, and whether the contract may gate at all. A study with
+ * no judge contracts yields nothing and prints nothing.
+ */
+function judgeDisclosures(
+  study: StudyConfig,
+  states: ReadonlyMap<string, ContractState>,
+): JudgeDisclosure[] {
+  const disclosures: JudgeDisclosure[] = [];
+
+  for (const contract of study.contracts) {
+    if (contract.type !== "judge") continue;
+    const state = states.get(contract.name)!;
+    const { certification } = state;
+
+    disclosures.push({
+      contractName: contract.name,
+      threshold: contract.threshold,
+      goldSetSize: state.envelope.goldSetSize,
+      pairedUnits: state.envelope.pairedUnits,
+      floorHalfWidth: certification?.floorHalfWidth ?? null,
+      gating: state.envelope.gating,
+      advisoryReasons: state.envelope.advisoryReasons,
+      labelsNeeded: state.envelope.labelsNeeded,
+    });
+  }
+
+  return disclosures;
 }
 
 function progressView(
@@ -612,6 +662,12 @@ async function runStudy(
     // Certification runs before the first trial, so a contract the floor guard
     // refuses never spends a judge call on the trial loop at all.
     const contractStates = await initContractStates(config, study, tempDir);
+
+    // R12: disclose the gold-set size and the floor those labels imply BEFORE
+    // the first trial. A threshold no number of trials can resolve is knowable
+    // here, and telling a user after a full budget of judge calls is telling
+    // them too late.
+    displayJudgeDisclosure(study.name, judgeDisclosures(study, contractStates));
 
     for (let trial = 0; trial < maxTrials; trial++) {
       // Check if all contracts have decided
@@ -756,6 +812,24 @@ async function runStudy(
 
 // ── Suite runner ─────────────────────────────────────────────
 
+/**
+ * Judge contracts with no gold set at all, named `study::contract`. Read off
+ * the config, so the answer is complete before the first study runs and the
+ * warning below can fire exactly once for the whole run.
+ */
+function ungoldedJudgeContracts(config: ValidatedConfig): string[] {
+  const names: string[] = [];
+  for (const study of config.raw.studies) {
+    for (const contract of study.contracts) {
+      if (contract.type !== "judge") continue;
+      if (!config.goldSets.has(`${study.name}::${contract.name}`)) {
+        names.push(`${study.name}::${contract.name}`);
+      }
+    }
+  }
+  return names;
+}
+
 export async function runSuite(
   config: ValidatedConfig,
   _options: RunOptions,
@@ -763,6 +837,15 @@ export async function runSuite(
   const start = performance.now();
   const isCI = !!process.env.CI;
   const studies: StudyResult[] = [];
+
+  // Once per run, before any study: a judge contract with no labels goes
+  // advisory, which is the one direction a change to CI must never move
+  // silently. Emitted here rather than per study so it cannot repeat, and
+  // before trial 1 so it is not buried under a run's worth of progress.
+  const ungolded = ungoldedJudgeContracts(config);
+  if (ungolded.length > 0) {
+    displayNoGoldSetWarning(ungolded);
+  }
 
   for (const studyConfig of config.raw.studies) {
     try {
