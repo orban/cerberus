@@ -59,6 +59,16 @@ const AlphaSplitSchema = z
   })
   .refine((v) => Math.abs(v.alpha_c + v.alpha_a - 1) < 1e-9, {
     message: "alpha_split.alpha_c + alpha_split.alpha_a must sum to 1",
+  })
+  // Summing to 1 is not enough: `{ alpha_c: 0, alpha_a: 1 }` satisfies it and
+  // leaves the calibration term no error budget at all. Enforced here rather
+  // than at the runtime throw in `runner.ts` so a pure config error fails at
+  // load time with exit code 2 -- studies run sequentially, so a later study's
+  // bad split would otherwise surface only after earlier studies had already
+  // spawned agents and spent judge calls.
+  .refine((v) => v.alpha_c > 0 && v.alpha_a > 0, {
+    message:
+      "alpha_split must give both the sampling and the calibration term a positive share of alpha",
   });
 
 const JudgeContractSchema = z.object({
@@ -118,8 +128,23 @@ export interface ValidatedConfig {
   readonly parsedCommand: ParsedCommand;
   readonly configDir: string; // directory of the config file (for resolving relative paths)
   // Loaded gold sets for judge contracts that declare `gold_set`, keyed by
-  // `${study.name}::${contract.name}`. Empty when no contract declares one.
+  // `goldSetKey(study.name, contract.name)`. Empty when no contract declares one.
   readonly goldSets: ReadonlyMap<string, GoldSetLoadResult>;
+}
+
+/**
+ * The gold-set map's key. Study and contract names are unconstrained strings,
+ * so a separator-joined key is not injective: study `a` + contract `b::c` and
+ * study `a::b` + contract `c` both flatten to `a::b::c`, and the contract with
+ * no gold set would then read the other's labels, certify on them, and gate.
+ * JSON's own escaping makes the pair recoverable, so no two distinct pairs can
+ * collide.
+ *
+ * Every producer and consumer of the key goes through this function -- a second
+ * hand-built key that drifts from this one is a map that silently never hits.
+ */
+export function goldSetKey(studyName: string, contractName: string): string {
+  return JSON.stringify([studyName, contractName]);
 }
 
 // ── Gold set ─────────────────────────────────────────────────
@@ -259,13 +284,21 @@ export async function loadConfig(
   const parsedCommand = parseCommandTemplate(config.adapter.command);
   const configDir = dirname(resolve(configPath));
 
+  // Keyed by `goldSetKey`, but one file backs as many contracts as name it.
+  // `loadGoldSet` is a deterministic read-and-parse and its result is never
+  // mutated, so those contracts share one load rather than one each.
   const goldSets = new Map<string, GoldSetLoadResult>();
+  const byPath = new Map<string, Promise<GoldSetLoadResult>>();
   for (const study of config.studies) {
     for (const contract of study.contracts) {
       if (contract.type === "judge" && contract.gold_set) {
         const goldSetPath = resolve(configDir, contract.gold_set);
-        const key = `${study.name}::${contract.name}`;
-        goldSets.set(key, await loadGoldSet(goldSetPath));
+        let pending = byPath.get(goldSetPath);
+        if (pending === undefined) {
+          pending = loadGoldSet(goldSetPath);
+          byPath.set(goldSetPath, pending);
+        }
+        goldSets.set(goldSetKey(study.name, contract.name), await pending);
       }
     }
   }

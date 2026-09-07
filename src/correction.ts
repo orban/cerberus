@@ -1,4 +1,4 @@
-import { wilsonScoreInterval, _inverseNormalCDF as inverseNormalCDF } from "./stats.js";
+import { wilsonScoreInterval, zForConfidence } from "./stats.js";
 
 // Bias correction for judge contracts (KTD3).
 //
@@ -155,8 +155,7 @@ function cellConfidence(alphaC: number): number {
 
 /** The z the per-cell Wilson call uses, for the labels-needed inversion. */
 function cellZ(alphaC: number): number {
-  const confidence = cellConfidence(alphaC);
-  return inverseNormalCDF(1 - (1 - confidence) / 2);
+  return zForConfidence(cellConfidence(alphaC));
 }
 
 export function estimateRectifier(

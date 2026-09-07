@@ -241,6 +241,30 @@ describe("calibrated judge contracts", () => {
     expect(contract.judgedRate).toBe(1);
   }, 30_000);
 
+  it("stops label-limited, not sampling-limited, when a sub-50-trial budget runs out on the floor", async () => {
+    // 3 passes in every 5 puts the running judged rate at 0.60, inside the
+    // +/- 0.144 calibration band around the 0.50 threshold. The in-run
+    // label-limited check is gated at 50 observed trials and the budget is 10,
+    // so only the budget-exhaustion branch can report this -- and reporting it
+    // as `sampling-limited` would tell the user more trials would resolve it
+    // when no number of trials can.
+    programJudge(
+      "straddles-at-the-budget",
+      certifiedJudge((trial) => (trial % 5 < 3 ? "pass" : "fail")),
+    );
+
+    const result = await runSuite(
+      await config("calibrated-budget-floor-config.yaml"),
+      { json: false },
+    );
+    const contract = result.studies[0]!.contractResults[0]!;
+
+    expect(contract.status).toBe("inconclusive");
+    expect(contract.trialsEvaluated).toBe(10);
+    expect(contract.judgedRate).toBeCloseTo(0.6, 10);
+    expect(contract.stopReason).toBe("label-limited");
+  }, 30_000);
+
   it("excludes judge error verdicts from the sequence and the trial budget (KTD8)", async () => {
     programJudge("all-errors", certifiedJudge(() => "error"));
 
@@ -463,6 +487,76 @@ describe("gating vs advisory envelope", () => {
     // The suite is vacuously passing: nothing here may drive the exit.
     expect(result.status).toBe("pass");
   }, 60_000);
+
+  it("keeps a contract whose name collides with another's advisory (no gold set of its own)", async () => {
+    programJudge("beta::gamma", certifiedJudge(() => "pass"));
+    programJudge("gamma", () => "pass");
+
+    const result = await runSuite(
+      await config("gold-set-key-collision-config.yaml"),
+      { json: false },
+    );
+    const byName = new Map(
+      result.studies
+        .flatMap((s) => s.contractResults)
+        .map((c) => [c.contractName, c]),
+    );
+
+    // Under a "::"-joined key both pairs hash to "alpha::beta::gamma", so this
+    // contract -- which declares no `gold_set:` at all -- would read the
+    // other's labels, certify on them, and gate.
+    const unlabelled = byName.get("gamma")!;
+    expect(unlabelled.gating).toBe(false);
+    expect(unlabelled.advisoryReasons).toEqual(["no-gold-set"]);
+    expect(unlabelled.goldSetSize).toBeUndefined();
+    expect(unlabelled.calibrated).toBe(false);
+
+    // ...while the contract that does declare one still gets it.
+    const labelled = byName.get("beta::gamma")!;
+    expect(labelled.goldSetSize).toBe(20);
+    expect(labelled.calibrated).toBe(true);
+  }, 30_000);
+
+  it("leaves a gold-set entry unrated when the agent trial itself crashed", async () => {
+    // The judge would have ruled on GOLD-B -- it is the agent that dies there.
+    // A verdict rendered on a crash is not the judge's opinion of the
+    // scenario, so pairing it against the human label would corrupt the
+    // reliability matrix and the rectifier with an availability failure.
+    programJudge("agent-died-on-gold-b", certifiedJudge(() => "pass"));
+
+    const result = await runSuite(
+      await config("advisory-crashed-gold-trial-config.yaml"),
+      { json: false },
+    );
+    const contract = result.studies[0]!.contractResults[0]!;
+
+    // 20 entries; the 5 GOLD-B ones lost their agent run, so 15 pair.
+    expect(contract.goldSetSize).toBe(20);
+    expect(contract.pairedUnits).toBe(15);
+
+    // The judge was never asked about GOLD-B, so no verdict on a crash could
+    // have entered the matrix in the first place.
+    const goldCalls = judgeCalls("agent-died-on-gold-b")
+      .map((c) => c.scenarioInput)
+      .filter((input) => input.startsWith("GOLD"));
+    expect(goldCalls).toEqual(["GOLD-A"]);
+  }, 30_000);
+
+  it("leaves a gold-set entry unrated when its scenario cannot be loaded, without throwing", async () => {
+    programJudge("gold-set-with-a-bad-path", certifiedJudge(() => "pass"));
+
+    const result = await runSuite(
+      await config("advisory-unloadable-scenario-config.yaml"),
+      { json: false },
+    );
+    const contract = result.studies[0]!.contractResults[0]!;
+
+    // Five entries name a scenario file that is not there. They degrade to
+    // unrated units rather than ending the run: 20 labelled, 15 paired.
+    expect(contract.goldSetSize).toBe(20);
+    expect(contract.pairedUnits).toBe(15);
+    expect(contract.gating).toBe(false);
+  }, 30_000);
 
   it("separates a partially-judged gold set from a small one", async () => {
     // 20 entries over two scenarios; the judge errors on GOLD-B, so its five

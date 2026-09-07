@@ -22,8 +22,6 @@ const isCI = !!process.env.CI;
  */
 export interface ContractProgressState {
   readonly decision: ContractDecision;
-  readonly successes: number;
-  readonly failures: number;
 }
 
 export function displayProgress(
@@ -119,14 +117,13 @@ const ADVISORY_REMEDY: Record<AdvisoryReason, string> = {
 
 function advisoryLines(
   reasons: readonly AdvisoryReason[],
-  labelsNeeded: number | null,
-  goldSetSize: number | undefined,
-  hasLabelsEstimate: boolean,
+  labelsNeeded: number | null | undefined,
+  pairedUnits: number | undefined,
 ): readonly string[] {
   return reasons.map((reason) => {
     const remedy =
       reason === "calibration-floor"
-        ? labelsRemedy(labelsNeeded, goldSetSize, hasLabelsEstimate)
+        ? labelsRemedy(labelsNeeded, pairedUnits)
         : ADVISORY_REMEDY[reason];
     return `advisory (does not gate): ${ADVISORY_CAUSE[reason]} — ${remedy}`;
   });
@@ -137,24 +134,38 @@ function advisoryLines(
  * answers and none of them is a missing number:
  *
  * - a figure: that many labels in total closes the gap;
- * - present and `null`: the threshold sits on the calibration band's centre,
- *   where no gold-set size separates it;
- * - absent: the floor was never the reason, so nothing was ever solved for.
+ * - `null`: the threshold sits on the calibration band's centre, where no
+ *   gold-set size separates it;
+ * - `undefined`: the floor was never the reason, so nothing was ever solved
+ *   for.
+ *
+ * The tri-state arrives intact rather than as a value plus a presence flag:
+ * collapsing `undefined` into `null` at the call site and recovering it from a
+ * separate boolean is how the two distinct answers get confused.
+ *
+ * The count subtracted is PAIRED UNITS, never the gold-set entry count. The
+ * solver behind `labelsNeeded` works over `confusionFromPairs` counts, whose
+ * `m` is the paired total, so that is the denominator its answer is expressed
+ * in. Subtracting the entry count on a partially-judged gold set understates
+ * the increment.
  */
 function labelsRemedy(
-  labelsNeeded: number | null,
-  goldSetSize: number | undefined,
-  hasEstimate: boolean,
+  labelsNeeded: number | null | undefined,
+  pairedUnits: number | undefined,
 ): string {
   if (typeof labelsNeeded === "number") {
-    const more =
-      goldSetSize === undefined
-        ? null
-        : Math.max(0, labelsNeeded - goldSetSize);
-    const increment = more === null ? "" : ` (${more} more)`;
+    if (pairedUnits !== undefined && labelsNeeded <= pairedUnits) {
+      // The solver assumes a larger gold set errs at the rate this one does,
+      // so its total can land at or below the units already judged while the
+      // floor still straddles. Reporting "(0 more) would resolve it" there
+      // would promise a remedy that has already been applied.
+      return `more gold labels would narrow it; this run's estimate of about ${labelsNeeded} is already met by the ${pairedUnits} judged, so it understates what is needed`;
+    }
+    const increment =
+      pairedUnits === undefined ? "" : ` (${labelsNeeded - pairedUnits} more)`;
     return `about ${labelsNeeded} gold labels in total${increment} would resolve it`;
   }
-  if (hasEstimate) {
+  if (labelsNeeded === null) {
     return "the threshold sits on the centre of the calibration band, so no gold-set size separates it";
   }
   return "more gold labels would narrow it, though this run computed no estimate of how many";
@@ -201,11 +212,38 @@ export function displayJudgeDisclosure(
     lines.push(disclosureLine(d));
     if (d.advisoryReasons.includes("calibration-floor")) {
       lines.push(
-        `      ${labelsRemedy(d.labelsNeeded, d.goldSetSize ?? undefined, true)}`,
+        `      ${labelsRemedy(d.labelsNeeded, d.pairedUnits ?? undefined)}`,
       );
     }
   }
   process.stderr.write(`${lines.join("\n")}\n`);
+}
+
+/**
+ * A stable, greppable prefix for a gold-set entry the runner could not load.
+ * Tests and CI log scrapers match on this exact string.
+ */
+export const GOLD_SET_LOAD_FAILURE_PREFIX =
+  "WARNING: gold-set scenario could not be loaded";
+
+/**
+ * One line per gold-set entry whose scenario file could not be read or parsed.
+ *
+ * Degrading the entry to an unrated unit is the intended behaviour -- a bad
+ * path must not end the run -- but doing it silently is the defect: the missing
+ * rating then looks exactly like a judge that disagreed with a human label, and
+ * can push a contract advisory on `certification` or `calibration-floor` for
+ * what is really a typo. Nothing is thrown; the user is simply told.
+ */
+export function displayGoldSetLoadFailure(
+  contractName: string,
+  scenarioPath: string,
+): void {
+  process.stderr.write(
+    pc.yellow(
+      `  ${GOLD_SET_LOAD_FAILURE_PREFIX}: contract "${contractName}" entry "${scenarioPath}" — its entries stay unrated\n`,
+    ),
+  );
 }
 
 /**
@@ -295,9 +333,8 @@ function stopReasonLine(result: ContractResult): string | null {
     return "stopped label-limited: no decision was reachable, for the reason above";
   }
   return `stopped label-limited: the calibration interval alone straddles the threshold — ${labelsRemedy(
-    result.labelsNeeded ?? null,
-    result.goldSetSize,
-    "labelsNeeded" in result,
+    result.labelsNeeded,
+    result.pairedUnits,
   )}`;
 }
 
@@ -368,9 +405,8 @@ function formatStudy(study: StudyResult): void {
         ? []
         : advisoryLines(
             result.advisoryReasons ?? [],
-            result.labelsNeeded ?? null,
-            result.goldSetSize,
-            "labelsNeeded" in result,
+            result.labelsNeeded,
+            result.pairedUnits,
           )),
       ...(stopReasonLine(result) === null ? [] : [stopReasonLine(result)!]),
     ];

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
-import { loadConfig, loadScenario } from "../src/config.js";
+import { goldSetKey, loadConfig, loadScenario } from "../src/config.js";
 
 const fixturesDir = resolve(import.meta.dirname, "fixtures");
 
@@ -157,7 +157,7 @@ describe("gold sets", () => {
     );
 
     const config = await loadConfig(resolve(fixturesDir, "gold-set-config.yaml"));
-    const loaded = config.goldSets.get("judge-study::valid-gold-set");
+    const loaded = config.goldSets.get(goldSetKey("judge-study", "valid-gold-set"));
     expect(loaded).toBeDefined();
     expect(loaded!.marked).toBe(false);
   });
@@ -178,7 +178,7 @@ describe("gold sets", () => {
 
   it("marks malformed gold-set content instead of throwing, with a reason", async () => {
     const config = await loadConfig(resolve(fixturesDir, "gold-set-config.yaml"));
-    const loaded = config.goldSets.get("judge-study::malformed-gold-set");
+    const loaded = config.goldSets.get(goldSetKey("judge-study", "malformed-gold-set"));
     expect(loaded).toBeDefined();
     expect(loaded!.marked).toBe(true);
     if (loaded!.marked) {
@@ -189,7 +189,7 @@ describe("gold sets", () => {
 
   it("marks an empty gold set with a reason distinct from malformed", async () => {
     const config = await loadConfig(resolve(fixturesDir, "gold-set-config.yaml"));
-    const loaded = config.goldSets.get("judge-study::empty-gold-set");
+    const loaded = config.goldSets.get(goldSetKey("judge-study", "empty-gold-set"));
     expect(loaded).toBeDefined();
     expect(loaded!.marked).toBe(true);
     if (loaded!.marked) {
@@ -200,7 +200,7 @@ describe("gold sets", () => {
 
   it("marks a gold set below the minimum unit count as undersized", async () => {
     const config = await loadConfig(resolve(fixturesDir, "gold-set-config.yaml"));
-    const loaded = config.goldSets.get("judge-study::undersized-gold-set");
+    const loaded = config.goldSets.get(goldSetKey("judge-study", "undersized-gold-set"));
     expect(loaded).toBeDefined();
     expect(loaded!.marked).toBe(true);
     if (loaded!.marked) {
@@ -210,12 +210,117 @@ describe("gold sets", () => {
 
   it("marks a gold set with no declared provenance", async () => {
     const config = await loadConfig(resolve(fixturesDir, "gold-set-config.yaml"));
-    const loaded = config.goldSets.get("judge-study::unprovenanced-gold-set");
+    const loaded = config.goldSets.get(goldSetKey("judge-study", "unprovenanced-gold-set"));
     expect(loaded).toBeDefined();
     expect(loaded!.marked).toBe(true);
     if (loaded!.marked) {
       expect(loaded!.reason).toBe("unprovenanced");
     }
+  });
+});
+
+describe("gold-set key collisions", () => {
+  // study "alpha" + contract "beta::gamma" and study "alpha::beta" +
+  // contract "gamma" both flatten to "alpha::beta::gamma" under a separator
+  // join. Only the first declares a gold set.
+  const withLabels = { study: "alpha", contract: "beta::gamma" };
+  const withoutLabels = { study: "alpha::beta", contract: "gamma" };
+
+  it("does not hand one contract's gold set to another whose name flattens the same way", async () => {
+    // The premise: these two pairs are indistinguishable once joined on "::".
+    expect(`${withLabels.study}::${withLabels.contract}`).toBe(
+      `${withoutLabels.study}::${withoutLabels.contract}`,
+    );
+
+    const config = await loadConfig(
+      resolve(fixturesDir, "gold-set-key-collision-config.yaml"),
+    );
+
+    // One gold set was declared, so exactly one is loaded -- and it belongs to
+    // the contract that asked for it.
+    expect(config.goldSets.size).toBe(1);
+    expect(
+      config.goldSets.get(goldSetKey(withLabels.study, withLabels.contract)),
+    ).toBeDefined();
+
+    // The contract with no `gold_set:` finds nothing, which is what leaves it
+    // advisory rather than certified on somebody else's labels.
+    expect(
+      config.goldSets.get(
+        goldSetKey(withoutLabels.study, withoutLabels.contract),
+      ),
+    ).toBeUndefined();
+  });
+
+  it("builds a key no other study/contract pair can produce", () => {
+    expect(goldSetKey(withLabels.study, withLabels.contract)).not.toBe(
+      goldSetKey(withoutLabels.study, withoutLabels.contract),
+    );
+    // Quotes and backslashes in a name are escaped rather than run together.
+    expect(goldSetKey('a"b', "c")).not.toBe(goldSetKey("a", 'b"c'));
+  });
+});
+
+describe("alpha_split", () => {
+  const configWith = (alphaSplit: unknown) => ({
+    adapter: { command: "node test.js --scenario {{scenario}}" },
+    judges: [{ model: "claude-3-5-sonnet-20241022" }],
+    studies: [
+      {
+        name: "test",
+        scenario: "test.yaml",
+        contracts: [
+          {
+            name: "judge-contract",
+            type: "judge",
+            rubric: "Check output quality",
+            trials: 10,
+            alpha_split: alphaSplit,
+          },
+        ],
+      },
+    ],
+  });
+
+  it("accepts a split that gives both terms a positive share summing to 1", async () => {
+    const { CerberusConfigSchema } = await import("../src/config.js");
+    const result = CerberusConfigSchema.safeParse(
+      configWith({ alpha_c: 2 / 3, alpha_a: 1 / 3 }),
+    );
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const contract = result.data.studies[0]!.contracts[0]!;
+      expect(contract.type).toBe("judge");
+      if (contract.type === "judge") {
+        expect(contract.alpha_split?.alpha_c).toBeCloseTo(2 / 3, 12);
+      }
+    }
+  });
+
+  it("rejects a split that starves one term, even though the shares sum to 1", async () => {
+    // `alpha_c: 0` leaves the calibration interval no error budget. It was
+    // caught only by a runtime throw inside runStudy, which fires after every
+    // earlier study has already spawned agents and spent judge calls -- so it
+    // has to fail at load time, as a config error.
+    const { CerberusConfigSchema } = await import("../src/config.js");
+
+    expect(
+      CerberusConfigSchema.safeParse(configWith({ alpha_c: 0, alpha_a: 1 }))
+        .success,
+    ).toBe(false);
+    expect(
+      CerberusConfigSchema.safeParse(configWith({ alpha_c: 1, alpha_a: 0 }))
+        .success,
+    ).toBe(false);
+  });
+
+  it("still rejects a split that does not sum to 1", async () => {
+    const { CerberusConfigSchema } = await import("../src/config.js");
+    expect(
+      CerberusConfigSchema.safeParse(configWith({ alpha_c: 0.5, alpha_a: 0.9 }))
+        .success,
+    ).toBe(false);
   });
 });
 

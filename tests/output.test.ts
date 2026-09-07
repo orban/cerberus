@@ -5,6 +5,7 @@ import { runSuite } from "../src/runner.js";
 import {
   formatResults,
   writeJsonOutput,
+  GOLD_SET_LOAD_FAILURE_PREFIX,
   NO_GOLD_SET_WARNING_HEADER,
 } from "../src/output.js";
 import type { ContractResult, SuiteResult } from "../src/types.js";
@@ -152,6 +153,7 @@ describe("stop reasons in text output", () => {
       judgedRate: 0.72,
       stopReason: "label-limited",
       goldSetSize: 20,
+      pairedUnits: 20,
       ...over,
     });
 
@@ -160,8 +162,38 @@ describe("stop reasons in text output", () => {
 
     expect(out).toContain("label-limited");
     expect(out).toContain("64");
-    // 64 total against the 20 already labelled is 44 more.
+    // 64 total against the 20 already judged is 44 more.
     expect(out).toContain("44 more");
+  });
+
+  it("counts the increment off paired units, not gold-set entries", () => {
+    // A partially-judged gold set: 20 human labels, but only 15 of them carry
+    // a judge verdict too. `labelsNeeded` is solved over the PAIRED counts, so
+    // 15 is the number it is expressed against -- subtracting the 20 entries
+    // would report 44 and understate what is actually needed.
+    const out = render([
+      labelLimited({ labelsNeeded: 64, goldSetSize: 20, pairedUnits: 15 }),
+    ]);
+
+    expect(out).toContain("64");
+    expect(out).toContain("49 more");
+    expect(out).not.toContain("44 more");
+  });
+
+  it("never claims a total that is already met", () => {
+    // The solver assumes a bigger gold set errs at the rate this one does, so
+    // its answer can land at or below the units already judged while the floor
+    // still straddles. "(0 more) would resolve it" promises a remedy that has
+    // been applied and did not work; "(-3 more)" is worse.
+    const out = render([
+      labelLimited({ labelsNeeded: 12, goldSetSize: 20, pairedUnits: 15 }),
+    ]);
+
+    expect(out).toContain("label-limited");
+    expect(out).toMatch(/more gold labels would narrow it/);
+    expect(out).toMatch(/already met/);
+    expect(out).not.toMatch(/\(-?\d+ more\)/);
+    expect(out).not.toMatch(/would resolve it/);
   });
 
   it("explains a band-centred threshold instead of printing a blank or a zero", () => {
@@ -416,6 +448,41 @@ describe("pre-run disclosure", () => {
     expect(before).toContain("floor-guarded");
     expect(before).toMatch(/20 gold labels/);
     expect(before).toMatch(/14\.4%/);
+  }, 60_000);
+
+  it("names a gold-set entry whose scenario could not be loaded", async () => {
+    programJudge("gold-set-with-a-bad-path", certifiedJudge(() => "pass"));
+
+    const chunks = await captureStderr(async () => {
+      await runSuite(
+        await config("advisory-unloadable-scenario-config.yaml"),
+        { json: false },
+      );
+    });
+    const text = chunks.join("");
+
+    // Degrading the entry to an unrated unit is intended; doing it silently is
+    // not. Without this line, five entries vanish from the pairing and a
+    // typo'd path reads exactly like a judge disagreeing with a human label.
+    expect(text).toContain(GOLD_SET_LOAD_FAILURE_PREFIX);
+    expect(text).toContain("scenarios/no-such-scenario.yaml");
+    expect(text).toContain("gold-set-with-a-bad-path");
+  }, 60_000);
+
+  it("says nothing about load failures when every gold-set scenario resolves", async () => {
+    programJudge("half-judged-gold-set", (call) =>
+      call.scenarioInput === "GOLD-B" ? "error" : "pass",
+    );
+
+    const chunks = await captureStderr(async () => {
+      await runSuite(await config("advisory-partial-labels-config.yaml"), {
+        json: false,
+      });
+    });
+
+    // The same 15-of-20 pairing, reached by a judge error rather than a bad
+    // path. The two are different diagnoses and must not print the same line.
+    expect(chunks.join("")).not.toContain(GOLD_SET_LOAD_FAILURE_PREFIX);
   }, 60_000);
 
   it("prints nothing for a suite with no judge contracts", async () => {

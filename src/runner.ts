@@ -11,7 +11,7 @@ import type {
   JudgeContractConfig,
   Scenario,
 } from "./config.js";
-import { loadScenario } from "./config.js";
+import { goldSetKey, loadScenario } from "./config.js";
 import type {
   TrialOutput,
   TrialMeta,
@@ -36,6 +36,7 @@ import {
   wilsonScoreInterval,
   bonferroniCorrection,
   benjaminiHochbergCorrection,
+  clampUnit,
 } from "./stats.js";
 import { certifyJudge } from "./calibration.js";
 import {
@@ -49,6 +50,7 @@ import {
 import { evaluateContract } from "./contracts.js";
 import {
   displayProgress,
+  displayGoldSetLoadFailure,
   displayJudgeDisclosure,
   displayNoGoldSetWarning,
   type ContractProgressState,
@@ -203,10 +205,6 @@ const DEFAULT_CALIBRATION_ALPHA_SHARE = 2 / 3;
  */
 const MIN_TRIALS_FOR_LABEL_LIMITED = 50;
 
-function clampUnit(x: number): number {
-  return Math.min(1, Math.max(0, x));
-}
-
 /**
  * `alpha_split`'s two fields are PROPORTIONS of the contract's alpha, not
  * absolute levels — the schema requires them to sum to 1. Total coverage is
@@ -226,6 +224,11 @@ function resolveAlphaSplit(contract: JudgeContractConfig): {
   const alphaC = alpha * calibrationShare;
   const alphaA = alpha * samplingShare;
 
+  // Defensive only: `AlphaSplitSchema` requires both shares strictly positive
+  // and summing to 1, and `confidence` is capped at 0.999, so alpha is at least
+  // 0.001 and neither product can leave (0,1). Kept as an assertion because
+  // `certifyJudge` and `estimateRectifier` both throw on an out-of-range
+  // alphaC, and this names the contract when they would not.
   if (!(alphaC > 0 && alphaC < 1) || !(alphaA > 0 && alphaA < 1)) {
     throw new CerberusError(
       `Contract "${contract.name}": alpha_split must give both the sampling and the calibration term a positive share of alpha`,
@@ -245,15 +248,22 @@ function resolveAlphaSplit(contract: JudgeContractConfig): {
  * are run once each — `certifyJudge` keys verdicts by scenario, so repeated
  * entries share a verdict and cost nothing extra.
  *
- * A scenario that cannot be loaded, or that the judge errored on, is left out
- * of the map rather than guessed at: `reliabilityMatrix` reads an absent
- * verdict as a missing rating, which is what it is.
+ * A scenario that cannot be loaded, whose agent trial crashed, or that the
+ * judge errored on, is left out of the map rather than guessed at:
+ * `reliabilityMatrix` reads an absent verdict as a missing rating, which is
+ * what it is.
+ *
+ * `scenarioCache` spans the whole study, so contracts sharing a gold set read
+ * and parse each scenario file once between them. Only the parse is shared:
+ * every contract still spawns its own agent run and its own judge call, because
+ * each certification needs an independent draw.
  */
 async function judgeGoldSet(
   config: ValidatedConfig,
   contract: JudgeContractConfig,
   load: GoldSetLoadResult,
   tempDir: string,
+  scenarioCache: Map<string, Promise<Scenario>>,
 ): Promise<Map<string, boolean>> {
   const verdicts = new Map<string, boolean>();
   const entries = load.goldSet?.entries ?? [];
@@ -263,11 +273,22 @@ async function judgeGoldSet(
     if (seen.has(entry.scenario)) continue;
     seen.add(entry.scenario);
 
+    const scenarioPath = join(config.configDir, entry.scenario);
+    let pending = scenarioCache.get(scenarioPath);
+    if (pending === undefined) {
+      pending = loadScenario(scenarioPath);
+      scenarioCache.set(scenarioPath, pending);
+    }
+
     let scenario: Scenario;
     try {
-      scenario = await loadScenario(join(config.configDir, entry.scenario));
+      scenario = await pending;
     } catch {
-      continue; // unrated unit, not a run-ending error
+      // An unrated unit, not a run-ending error -- but silence here makes a
+      // typo'd path look identical to a judge disagreeing with a human, and
+      // can push a contract advisory for what is really a config bug.
+      displayGoldSetLoadFailure(contract.name, entry.scenario);
+      continue;
     }
 
     const scenarioFilePath = await writeScenarioFile(
@@ -276,6 +297,15 @@ async function judgeGoldSet(
       `gold-${seen.size}.json`,
     );
     const output = await executeTrial(config, scenarioFilePath);
+
+    // The agent, not the judge, failed here: `executeTrial` never rejects, so a
+    // spawn error, a timeout or a crash arrives as a normal output with a
+    // nonzero exit code and empty or garbage stdout. Judging that would pair a
+    // verdict on a crash against a human label as if it were the judge's
+    // opinion, corrupting the reliability matrix and the rectifier. The trial
+    // loop makes the same check.
+    if (output.meta.exitCode !== 0) continue;
+
     const verdict = await evaluateContract(
       output,
       contract,
@@ -373,8 +403,17 @@ function updateCalibrated(
     return stopped("inconclusive", "label-limited");
   }
 
+  // The budget is gone, so the MIN_TRIALS guard above has nothing left to
+  // protect: there are no further trials for a premature label-limited verdict
+  // to be disbelieved by. Below 50 trials the guard would otherwise force every
+  // budget-exhausted contract to report `sampling-limited` and tell the user
+  // "more trials would resolve it" when the calibration floor is what blocks
+  // the decision -- exactly the misdiagnosis the three-way stop exists to
+  // prevent. Contract budgets of 8, 10, 30 and 40 are all in this range.
   if (observations >= contract.trials) {
-    return stopped("inconclusive", "sampling-limited");
+    return calibrationFloorStraddles(judgedRate, state.calibration, threshold)
+      ? stopped("inconclusive", "label-limited")
+      : stopped("inconclusive", "sampling-limited");
   }
 
   return { ...state, sequence, observations, judgedSuccesses, interval };
@@ -496,8 +535,6 @@ interface CalibratedContractState {
   /** U5's certification, kept for the reporting units downstream. */
   readonly certification: JudgeCertification;
   calibrated: CalibratedState;
-  successes: number;
-  failures: number;
 }
 
 type ContractState = SPRTContractState | CalibratedContractState;
@@ -540,6 +577,9 @@ async function initContractStates(
   tempDir: string,
 ): Promise<Map<string, ContractState>> {
   const states = new Map<string, ContractState>();
+  // Shared across contracts: gold sets are commonly reused, and re-reading the
+  // same scenario file once per contract buys nothing.
+  const scenarioCache = new Map<string, Promise<Scenario>>();
 
   for (const contract of study.contracts) {
     if (contract.type !== "judge") {
@@ -547,7 +587,7 @@ async function initContractStates(
       continue;
     }
 
-    const load = config.goldSets.get(`${study.name}::${contract.name}`);
+    const load = config.goldSets.get(goldSetKey(study.name, contract.name));
     if (!load) {
       states.set(contract.name, newSPRTState(contract, NO_GOLD_SET));
       continue;
@@ -556,7 +596,13 @@ async function initContractStates(
     const { alphaA, alphaC } = resolveAlphaSplit(contract);
     const certification = certifyJudge({
       goldSet: load,
-      judgeVerdicts: await judgeGoldSet(config, contract, load, tempDir),
+      judgeVerdicts: await judgeGoldSet(
+        config,
+        contract,
+        load,
+        tempDir,
+        scenarioCache,
+      ),
       threshold: contract.threshold,
       alphaC,
     });
@@ -580,8 +626,6 @@ async function initContractStates(
       envelope,
       certification,
       calibrated: createCalibratedState(certification, rectifier, alphaA),
-      successes: 0,
-      failures: 0,
     });
   }
 
@@ -625,11 +669,7 @@ function progressView(
 ): Map<string, ContractProgressState> {
   const view = new Map<string, ContractProgressState>();
   for (const [name, state] of states) {
-    view.set(name, {
-      decision: contractDecision(state),
-      successes: state.successes,
-      failures: state.failures,
-    });
+    view.set(name, { decision: contractDecision(state) });
   }
   return view;
 }
@@ -727,12 +767,6 @@ async function runStudy(
         if (verdict.status === "error") continue;
 
         const success = verdict.status === "pass";
-        if (success) {
-          state.successes++;
-        } else {
-          state.failures++;
-        }
-
         state.calibrated = updateCalibrated(state.calibrated, contract, success);
       }
 
@@ -813,16 +847,20 @@ async function runStudy(
 // ── Suite runner ─────────────────────────────────────────────
 
 /**
- * Judge contracts with no gold set at all, named `study::contract`. Read off
- * the config, so the answer is complete before the first study runs and the
- * warning below can fire exactly once for the whole run.
+ * Judge contracts with no gold set at all. Read off the config, so the answer
+ * is complete before the first study runs and the warning below can fire
+ * exactly once for the whole run.
+ *
+ * The lookup goes through `goldSetKey`; the name that comes back is the
+ * `study::contract` label a human reads in the warning, which is a display
+ * string and never a key.
  */
 function ungoldedJudgeContracts(config: ValidatedConfig): string[] {
   const names: string[] = [];
   for (const study of config.raw.studies) {
     for (const contract of study.contracts) {
       if (contract.type !== "judge") continue;
-      if (!config.goldSets.has(`${study.name}::${contract.name}`)) {
+      if (!config.goldSets.has(goldSetKey(study.name, contract.name))) {
         names.push(`${study.name}::${contract.name}`);
       }
     }

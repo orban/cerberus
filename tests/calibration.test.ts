@@ -11,7 +11,6 @@ import {
 import {
   confusionFromPairs,
   estimateRectifier,
-  labelsNeededForHalfWidth,
   type GoldLabelledVerdict,
 } from "../src/correction.js";
 import { MINIMUM_GOLD_SET_SIZE } from "../src/config.js";
@@ -625,15 +624,48 @@ describe("certifyJudge: floor guard (R10)", () => {
     expect(result.labelsNeeded!).toBeGreaterThan(result.goldSetSize);
   });
 
-  it("reports the labels needed to bring the floor under the threshold gap", () => {
-    const result = certify(straddling, { threshold: 0.7 });
-    const counts = confusionFromPairs(straddling.pairs);
-    const rectifier = estimateRectifier(counts, ALPHA_C);
-    const centre =
-      result.anchorRate! + (rectifier.interval.lower + rectifier.interval.upper) / 2;
-    const gap = Math.abs(centre - 0.7);
+  it("reports a labels-needed figure that actually clears the floor", () => {
+    // A round trip, not a mirror. Recomputing `anchorRate + midpoint` and the
+    // gap here would be `labelsToClearFloor`'s own body character for
+    // character, so a sign or midpoint error would flow into both sides and
+    // the test would still pass. Instead: scale the gold set to the size the
+    // figure names, at the same error rate, and check the floor stops
+    // straddling -- which is the claim the number makes.
+    const labelsNeeded = certify(straddling, { threshold: 0.7 }).labelsNeeded!;
 
-    expect(result.labelsNeeded).toBe(labelsNeededForHalfWidth(counts, gap, ALPHA_C));
+    // Counts have to stay integers at the SAME per-cell error rate and the
+    // same anchor (11 of every 20 units judged pass), so the sizes available
+    // are multiples of 20. `k` is the smallest one that reaches the figure.
+    const scaled = (k: number) =>
+      buildGoldSet({
+        bothPass: 10 * k,
+        bothFail: 8 * k,
+        falseNegatives: k,
+        falsePositives: k,
+      });
+    const k = Math.ceil(labelsNeeded / 20);
+
+    // Below the figure the floor still straddles; at or above it, it does not.
+    const under = certify(scaled(k - 1), { threshold: 0.7 });
+    const over = certify(scaled(k), { threshold: 0.7 });
+
+    expect((k - 1) * 20).toBeLessThan(labelsNeeded);
+    expect(k * 20).toBeGreaterThanOrEqual(labelsNeeded);
+    expect(under.floorStraddlesThreshold).toBe(true);
+    expect(over.floorStraddlesThreshold).toBe(false);
+
+    // Same anchor throughout, so it is the floor's width that moved and not
+    // the band sliding off the threshold.
+    expect(over.anchorRate).toBeCloseTo(under.anchorRate!, 12);
+    expect(over.floorHalfWidth!).toBeLessThan(under.floorHalfWidth!);
+
+    // ...so the floor is no longer a reason to refuse the contract, and there
+    // is nothing left to solve for. (Whether it gates is a separate question:
+    // α is its own statistic off the same gold set, and passing one bound does
+    // not bound the other.)
+    expect(under.ineligibilityReasons).toContain("calibration-floor");
+    expect(over.ineligibilityReasons).not.toContain("calibration-floor");
+    expect(over.labelsNeeded).toBeNull();
   });
 
   it("anchors the band on the judge's own gold-set pass rate before trial 1", () => {

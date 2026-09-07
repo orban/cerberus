@@ -65,9 +65,12 @@ cli.ts → config.ts → runner.ts → contracts.ts → judges.ts
 ```typescript
 // The config loaded from cerberus.yaml
 interface ValidatedConfig {
-  raw: CerberusConfig;      // Zod-validated config
+  raw: CerberusConfig;          // Zod-validated config
   parsedCommand: ParsedCommand; // Split command + placeholder index
-  configDir: string;         // For resolving relative scenario paths
+  configDir: string;            // For resolving relative scenario paths
+  // Gold sets for judge contracts that declare `gold_set`, keyed by
+  // `goldSetKey(study.name, contract.name)`. Empty when none declares one.
+  goldSets: ReadonlyMap<string, GoldSetLoadResult>;
 }
 
 // Result of a single trial against one contract
@@ -82,10 +85,39 @@ interface ContractVerdict {
 interface ContractResult {
   contractName: string;
   status: "pass" | "fail" | "inconclusive";
+  // The BIAS-CORRECTED true-rate estimate for a calibrated judge contract;
+  // the raw observed pass rate for every other contract.
   observedRate: number;
-  ci: ConfidenceInterval;     // Wilson score interval
+  // Wilson score interval on the SPRT path (code contracts and judge
+  // contracts with no usable gold set). For a CALIBRATED judge contract it is
+  // instead the corrected interval: the sampling term and the calibration
+  // term summed ON ENDPOINTS, then clamped once to the unit interval.
+  ci: ConfidenceInterval;
   trialsEvaluated: number;
   sprtStoppedEarly: boolean;
+  correctedAlpha?: number;     // set by applyCorrection(), gating contracts only
+
+  // Whether this contract may drive the exit code. Code contracts are exact
+  // oracles and are always true; a judge contract is true only with an
+  // unmarked gold set and a `pass` certification. Advisory contracts still
+  // report their verdict but are excluded from the suite-status rollup and
+  // from the multiple-comparison family.
+  gating: boolean;
+
+  calibrated?: boolean;        // judge contracts only
+  stopReason?: ContractStopReason;  // calibrated contracts only, once stopped
+  judgedRate?: number;         // calibrated contracts only: the raw judged rate
+  advisoryReasons?: readonly AdvisoryReason[];  // non-empty iff !gating
+  goldSetSize?: number;        // human-labelled entries; absent with no gold set
+  pairedUnits?: number;        // entries carrying BOTH a label and a verdict
+  // Three-state, and the three are different answers:
+  //   a number  -- that TOTAL gold-set size would separate the threshold
+  //   null      -- the threshold sits on the calibration band's centre, so NO
+  //                gold-set size separates it (an answer, not a missing value)
+  //   absent    -- the calibration floor is not why this contract is advisory,
+  //                so nothing was ever solved for
+  // The JSON writer keys off PRESENCE, not value, to keep null distinct.
+  labelsNeeded?: number | null;
 }
 ```
 

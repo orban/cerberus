@@ -1,4 +1,5 @@
 import type { ConfidenceInterval } from "./types.js";
+import { clampUnit } from "./stats.js";
 
 // ── Predictable-plug-in empirical-Bernstein confidence sequence ──
 //
@@ -182,9 +183,9 @@ export function confidenceSequenceInterval(
   // Clamp last: endpoint clipping to the support is coverage-preserving, but
   // clipping earlier would corrupt the running intersection it feeds.
   return {
-    lower: Math.min(1, Math.max(0, state.lower)),
-    upper: Math.min(1, Math.max(0, state.upper)),
-    center: Math.min(1, Math.max(0, center)),
+    lower: clampUnit(state.lower),
+    upper: clampUnit(state.upper),
+    center: clampUnit(center),
     n: state.t,
   };
 }
