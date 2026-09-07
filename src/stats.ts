@@ -4,7 +4,7 @@ import type { SPRTConfig, SPRTState, ConfidenceInterval } from "./types.js";
 // Rational approximation of the inverse normal CDF (Abramowitz & Stegun 26.2.23).
 // Accurate to ~4.5e-4. Good enough for CI computation; avoids a dependency.
 
-function inverseNormalCDF(p: number): number {
+export function inverseNormalCDF(p: number): number {
   if (p <= 0 || p >= 1) {
     throw new RangeError(`inverseNormalCDF: p must be in (0,1), got ${p}`);
   }
@@ -64,6 +64,26 @@ function inverseNormalCDF(p: number): number {
       ((((d1 * q + d2) * q + d3) * q + d4) * q + 1)
     );
   }
+}
+
+/**
+ * The two-sided z for a confidence level. Every interval in the codebase is
+ * two-sided, so the halving lives here once rather than at each call site — a
+ * caller that forgets it is off by a factor of two with no symptom.
+ */
+export function zForConfidence(confidence: number): number {
+  return inverseNormalCDF(1 - (1 - confidence) / 2);
+}
+
+// ── Numeric helpers ──────────────────────────────────────────
+
+/**
+ * Clip to the unit interval. Argument order is load-bearing: `Math.max(0, x)`
+ * innermost means a NaN input falls through as NaN rather than being silently
+ * turned into a plausible-looking 1.
+ */
+export function clampUnit(x: number): number {
+  return Math.min(1, Math.max(0, x));
 }
 
 // ── SPRT ─────────────────────────────────────────────────────
@@ -158,7 +178,7 @@ export function wilsonScoreInterval(
     return { lower: 0, upper: 1, center: 0, n: 0 };
   }
 
-  const z = inverseNormalCDF(1 - (1 - confidence) / 2);
+  const z = zForConfidence(confidence);
   const z2 = z * z;
   const pHat = successes / n;
 
@@ -221,5 +241,5 @@ export function benjaminiHochbergCorrection(
   return { correctedAlphas, rejected };
 }
 
-// Re-export for testing
+// Alias kept for tests that import the underscore name.
 export { inverseNormalCDF as _inverseNormalCDF };

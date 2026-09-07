@@ -1,0 +1,22 @@
+# A crashed agent whose only contract is advisory. The judge passes everything,
+# so nothing in the contract rollup objects -- the abort is the ONLY signal that
+# the run is worthless, and it must reach the suite status on its own channel.
+# Agent availability is not judge calibration.
+adapter:
+  command: "node ./tests/fixtures/agents/crash.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: advisory-abort
+    scenario: scenarios/simple.yaml
+    max_error_rate: 0.10
+    contracts:
+      - name: advisory-on-a-crash
+        type: judge
+        rubric: "Check output quality"
+        threshold: 0.50
+        confidence: 0.95
+        trials: 20

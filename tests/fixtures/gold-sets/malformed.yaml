@@ -1,0 +1,6 @@
+provenance: random-sample-of-trial-population
+
+entries:
+  - scenario: scenarios/simple.yaml
+    label: maybe
+  - this-is-not-an-entry

@@ -1,9 +1,21 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { resolve } from "node:path";
 import { loadConfig } from "../src/config.js";
 import { runSuite } from "../src/runner.js";
 import { writeJsonOutput } from "../src/output.js";
 import { EXIT_CODE } from "../src/types.js";
+import type { SuiteResult } from "../src/types.js";
+import {
+  programJudge,
+  resetScriptedJudge,
+} from "./fixtures/scripted-judge.js";
+
+// The judge seam, so the advisory exit-code cases below run with no API key.
+// Every other fixture here is code-contract only and never reaches it.
+vi.mock("../src/judges.js", async () => ({
+  evaluateWithPanel: (await import("./fixtures/scripted-judge.js"))
+    .scriptedEvaluateWithPanel,
+}));
 
 const fixturesDir = resolve(import.meta.dirname, "fixtures");
 
@@ -11,6 +23,28 @@ async function run(configName: string) {
   const config = await loadConfig(resolve(fixturesDir, configName));
   return runSuite(config, { json: false });
 }
+
+/**
+ * The terminal ternary in `src/cli.ts`, mirrored. It reads nothing but the
+ * suite status, which is where U7's gating filter and abort rule already live —
+ * so asserting on this is asserting on the process's exit code.
+ */
+function exitCodeFor(result: SuiteResult): number {
+  return result.status === "pass"
+    ? EXIT_CODE.PASS
+    : result.status === "fail"
+      ? EXIT_CODE.FAIL
+      : result.status === "inconclusive"
+        ? EXIT_CODE.INCONCLUSIVE
+        : EXIT_CODE.RUNTIME_ERROR;
+}
+
+beforeEach(() => {
+  resetScriptedJudge();
+  delete process.env.OPENAI_API_KEY;
+  delete process.env.ANTHROPIC_API_KEY;
+  delete process.env.GOOGLE_API_KEY;
+});
 
 describe("E2E: exit codes", () => {
   it("exit 0: all contracts pass", async () => {
@@ -48,6 +82,38 @@ describe("E2E: exit codes", () => {
     expect(result.studies[0]!.aborted).toBe(true);
     expect(result.status).toBe("fail");
   });
+});
+
+// ── Gating vs advisory exit codes (AE1, R6, R11, KTD7) ───────
+
+describe("E2E: advisory contracts and the exit code", () => {
+  it("exit 0: a failing advisory judge contract is the whole suite", async () => {
+    programJudge("advisory-judge", () => "fail");
+
+    const result = await run("advisory-only-config.yaml");
+
+    expect(result.studies[0]!.contractResults[0]!.status).toBe("fail");
+    expect(exitCodeFor(result)).toBe(EXIT_CODE.PASS);
+  }, 30_000);
+
+  it("exit 1: a gating code contract fails alongside a failing advisory one", async () => {
+    programJudge("advisory-judge", () => "fail");
+
+    const result = await run("advisory-mixed-config.yaml");
+
+    expect(exitCodeFor(result)).toBe(EXIT_CODE.FAIL);
+  }, 30_000);
+
+  it("exit 1: an aborted study with none but advisory contracts", async () => {
+    // The judge passes everything, so without the abort rule the gating filter
+    // would leave nothing to fail on and a crashed agent would exit green.
+    programJudge("advisory-on-a-crash", () => "pass");
+
+    const result = await run("advisory-abort-config.yaml");
+
+    expect(result.studies[0]!.aborted).toBe(true);
+    expect(exitCodeFor(result)).toBe(EXIT_CODE.FAIL);
+  }, 30_000);
 });
 
 describe("E2E: SPRT early stopping", () => {

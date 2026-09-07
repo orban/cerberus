@@ -3,6 +3,7 @@ import { resolve, dirname } from "node:path";
 import { z } from "zod";
 import { parse as parseYaml } from "yaml";
 import { ConfigError } from "./errors.js";
+import type { GoldSet, GoldSetLoadResult } from "./types.js";
 
 // ── Command template parsing ─────────────────────────────────
 
@@ -51,6 +52,25 @@ const CodeContractSchema = z.object({
   trials: z.number().int().positive().default(50),
 });
 
+const AlphaSplitSchema = z
+  .object({
+    alpha_c: z.number().min(0).max(1),
+    alpha_a: z.number().min(0).max(1),
+  })
+  .refine((v) => Math.abs(v.alpha_c + v.alpha_a - 1) < 1e-9, {
+    message: "alpha_split.alpha_c + alpha_split.alpha_a must sum to 1",
+  })
+  // Summing to 1 is not enough: `{ alpha_c: 0, alpha_a: 1 }` satisfies it and
+  // leaves the calibration term no error budget at all. Enforced here rather
+  // than at the runtime throw in `runner.ts` so a pure config error fails at
+  // load time with exit code 2 -- studies run sequentially, so a later study's
+  // bad split would otherwise surface only after earlier studies had already
+  // spawned agents and spent judge calls.
+  .refine((v) => v.alpha_c > 0 && v.alpha_a > 0, {
+    message:
+      "alpha_split must give both the sampling and the calibration term a positive share of alpha",
+  });
+
 const JudgeContractSchema = z.object({
   name: z.string().min(1),
   type: z.literal("judge"),
@@ -60,6 +80,13 @@ const JudgeContractSchema = z.object({
   threshold: z.number().min(0.11).max(1.0).default(0.90),
   confidence: z.number().min(0.50).max(0.999).default(0.95),
   trials: z.number().int().positive().default(50),
+  // Path to a gold-set file, resolved against configDir (not cwd), like
+  // `study.scenario`. Absent by default -- every existing config keeps
+  // parsing unchanged. See loadGoldSet() and GoldSetLoadResult.
+  gold_set: z.string().min(1).optional(),
+  // Override for the sampling/calibration error-budget split (KTD2).
+  // Absent by default; the default split is computed elsewhere.
+  alpha_split: AlphaSplitSchema.optional(),
 });
 
 const ContractSchema = z.discriminatedUnion("type", [
@@ -100,6 +127,109 @@ export interface ValidatedConfig {
   readonly raw: CerberusConfig;
   readonly parsedCommand: ParsedCommand;
   readonly configDir: string; // directory of the config file (for resolving relative paths)
+  // Loaded gold sets for judge contracts that declare `gold_set`, keyed by
+  // `goldSetKey(study.name, contract.name)`. Empty when no contract declares one.
+  readonly goldSets: ReadonlyMap<string, GoldSetLoadResult>;
+}
+
+/**
+ * The gold-set map's key. Study and contract names are unconstrained strings,
+ * so a separator-joined key is not injective: study `a` + contract `b::c` and
+ * study `a::b` + contract `c` both flatten to `a::b::c`, and the contract with
+ * no gold set would then read the other's labels, certify on them, and gate.
+ * JSON's own escaping makes the pair recoverable, so no two distinct pairs can
+ * collide.
+ *
+ * Every producer and consumer of the key goes through this function -- a second
+ * hand-built key that drifts from this one is a map that silently never hits.
+ */
+export function goldSetKey(studyName: string, contractName: string): string {
+  return JSON.stringify([studyName, contractName]);
+}
+
+// ── Gold set ─────────────────────────────────────────────────
+
+// Below this many entries, a gold set is marked "undersized" and cannot
+// support gating -- there isn't enough data to certify a judge against.
+export const MINIMUM_GOLD_SET_SIZE = 20;
+
+const GoldSetEntrySchema = z.object({
+  scenario: z.string().min(1),
+  label: z.enum(["pass", "fail"]),
+});
+
+const GoldSetFileSchema = z.object({
+  provenance: z.string().optional(),
+  entries: z.array(GoldSetEntrySchema).optional().default([]),
+});
+
+// Loads and marks a gold set. A missing file is a config error (matching the
+// existing judges-array precedent); malformed, empty, undersized, or
+// unprovenanced content is marked rather than thrown, per KD3 -- a gold set
+// that cannot support gating is still advisory, not a config error.
+async function loadGoldSet(resolvedPath: string): Promise<GoldSetLoadResult> {
+  let raw: string;
+  try {
+    raw = await readFile(resolvedPath, "utf-8");
+  } catch {
+    throw new ConfigError(`Cannot read gold set file: ${resolvedPath}`);
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = parseYaml(raw);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return {
+      marked: true,
+      reason: "malformed",
+      message: `Gold set file is not valid YAML: ${msg}`,
+    };
+  }
+
+  const result = GoldSetFileSchema.safeParse(parsed);
+  if (!result.success) {
+    const issues = result.error.issues
+      .map((i) => `${i.path.join(".")}: ${i.message}`)
+      .join("; ");
+    return {
+      marked: true,
+      reason: "malformed",
+      message: `Gold set file does not match the expected shape: ${issues}`,
+    };
+  }
+
+  const { provenance, entries } = result.data;
+  const goldSet: GoldSet = { provenance: provenance ?? "", entries };
+
+  if (entries.length === 0) {
+    return {
+      marked: true,
+      reason: "empty",
+      message: "Gold set has no entries",
+      goldSet,
+    };
+  }
+
+  if (entries.length < MINIMUM_GOLD_SET_SIZE) {
+    return {
+      marked: true,
+      reason: "undersized",
+      message: `Gold set has ${entries.length} entries; at least ${MINIMUM_GOLD_SET_SIZE} are required to support gating`,
+      goldSet,
+    };
+  }
+
+  if (!provenance || provenance.trim().length === 0) {
+    return {
+      marked: true,
+      reason: "unprovenanced",
+      message: "Gold set does not declare a sampling mechanism (provenance)",
+      goldSet,
+    };
+  }
+
+  return { marked: false, goldSet };
 }
 
 // ── Scenario ─────────────────────────────────────────────────
@@ -152,11 +282,32 @@ export async function loadConfig(
   }
 
   const parsedCommand = parseCommandTemplate(config.adapter.command);
+  const configDir = dirname(resolve(configPath));
+
+  // Keyed by `goldSetKey`, but one file backs as many contracts as name it.
+  // `loadGoldSet` is a deterministic read-and-parse and its result is never
+  // mutated, so those contracts share one load rather than one each.
+  const goldSets = new Map<string, GoldSetLoadResult>();
+  const byPath = new Map<string, Promise<GoldSetLoadResult>>();
+  for (const study of config.studies) {
+    for (const contract of study.contracts) {
+      if (contract.type === "judge" && contract.gold_set) {
+        const goldSetPath = resolve(configDir, contract.gold_set);
+        let pending = byPath.get(goldSetPath);
+        if (pending === undefined) {
+          pending = loadGoldSet(goldSetPath);
+          byPath.set(goldSetPath, pending);
+        }
+        goldSets.set(goldSetKey(study.name, contract.name), await pending);
+      }
+    }
+  }
 
   return {
     raw: config,
     parsedCommand,
-    configDir: dirname(resolve(configPath)),
+    configDir,
+    goldSets,
   };
 }
 
