@@ -101,6 +101,57 @@ export const EXIT_CODE = {
 
 export type ExitCode = (typeof EXIT_CODE)[keyof typeof EXIT_CODE];
 
+// ── Gold-set types ───────────────────────────────────────────
+// A gold set is human labels over a subset of a judge contract's scenarios,
+// used to calibrate the judge against ground truth. Loaded and marked by
+// `src/config.ts`; consumed by the calibration/correction units.
+
+export interface GoldSetEntry {
+  readonly scenario: string;
+  readonly label: "pass" | "fail";
+}
+
+export interface GoldSet {
+  // The declared sampling mechanism (e.g. "random-sample-of-trial-population").
+  // Empty when undeclared -- see GoldSetMarkingReason "unprovenanced".
+  readonly provenance: string;
+  readonly entries: readonly GoldSetEntry[];
+}
+
+// Distinct, machine-readable reasons a gold set cannot support gating.
+// A later unit surfaces these to the user alongside human-readable text.
+export type GoldSetMarkingReason =
+  | "malformed" // content does not match the expected shape
+  | "empty" // parsed, but has zero entries
+  | "undersized" // below the minimum unit count
+  | "unprovenanced"; // no declared sampling mechanism
+
+export interface MarkedGoldSet {
+  readonly marked: true;
+  readonly reason: GoldSetMarkingReason;
+  readonly message: string;
+  // Present whenever entries/provenance could be constructed despite the
+  // marking (e.g. "undersized", "unprovenanced"); absent for "malformed",
+  // where the content could not be parsed into a GoldSet at all.
+  readonly goldSet?: GoldSet;
+}
+
+export interface UnmarkedGoldSet {
+  readonly marked: false;
+  readonly goldSet: GoldSet;
+}
+
+export type GoldSetLoadResult = UnmarkedGoldSet | MarkedGoldSet;
+
+// Override for how a judge contract's error budget splits between the
+// sampling term and the calibration term (see KTD2 in the calibration plan).
+// Absent by default; the default split is computed elsewhere from the
+// contract's overall alpha.
+export interface AlphaSplitConfig {
+  readonly alpha_c: number;
+  readonly alpha_a: number;
+}
+
 // ── Config types (inferred from Zod in config.ts) ────────────
 // These are re-exported from config.ts after Zod schema definition.
 // This file only contains runtime/domain types.

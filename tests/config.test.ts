@@ -124,6 +124,101 @@ describe("loadConfig", () => {
   });
 });
 
+describe("gold sets", () => {
+  it("parses a config with no gold set unchanged and yields no gold set", async () => {
+    const config = await loadConfig(resolve(fixturesDir, "valid-config.yaml"));
+    expect(config.goldSets.size).toBe(0);
+  });
+
+  it("still loads every pre-existing config fixture (backward compatibility)", async () => {
+    const preExistingConfigs = [
+      "valid-config.yaml",
+      "abort-config.yaml",
+      "crash-config.yaml",
+      "flaky-config.yaml",
+      "json-output-config.yaml",
+      "multi-contract-config.yaml",
+      "timeout-config.yaml",
+    ];
+
+    for (const fixture of preExistingConfigs) {
+      const config = await loadConfig(resolve(fixturesDir, fixture));
+      expect(config.goldSets.size).toBe(0);
+    }
+  });
+
+  it("resolves a gold-set path relative to the config file's directory, not the working directory", async () => {
+    // gold-set-config.yaml references "gold-sets/valid.yaml" -- a path that only
+    // exists relative to tests/fixtures/, not relative to the repo root (cwd
+    // when vitest runs). If the loader resolved against cwd instead of
+    // configDir, this would throw ConfigError (missing file) instead of loading.
+    expect(resolve(process.cwd(), "gold-sets", "valid.yaml")).not.toBe(
+      resolve(fixturesDir, "gold-sets", "valid.yaml"),
+    );
+
+    const config = await loadConfig(resolve(fixturesDir, "gold-set-config.yaml"));
+    const loaded = config.goldSets.get("judge-study::valid-gold-set");
+    expect(loaded).toBeDefined();
+    expect(loaded!.marked).toBe(false);
+  });
+
+  it("treats a gold-set path pointing at a missing file as a config error", async () => {
+    const { EXIT_CODE } = await import("../src/types.js");
+    await expect(
+      loadConfig(resolve(fixturesDir, "gold-set-missing-config.yaml")),
+    ).rejects.toThrow("Cannot read gold set file");
+
+    try {
+      await loadConfig(resolve(fixturesDir, "gold-set-missing-config.yaml"));
+      expect.unreachable("expected loadConfig to throw");
+    } catch (e) {
+      expect((e as { exitCode: number }).exitCode).toBe(EXIT_CODE.CONFIG_ERROR);
+    }
+  });
+
+  it("marks malformed gold-set content instead of throwing, with a reason", async () => {
+    const config = await loadConfig(resolve(fixturesDir, "gold-set-config.yaml"));
+    const loaded = config.goldSets.get("judge-study::malformed-gold-set");
+    expect(loaded).toBeDefined();
+    expect(loaded!.marked).toBe(true);
+    if (loaded!.marked) {
+      expect(loaded!.reason).toBe("malformed");
+      expect(loaded!.message.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("marks an empty gold set with a reason distinct from malformed", async () => {
+    const config = await loadConfig(resolve(fixturesDir, "gold-set-config.yaml"));
+    const loaded = config.goldSets.get("judge-study::empty-gold-set");
+    expect(loaded).toBeDefined();
+    expect(loaded!.marked).toBe(true);
+    if (loaded!.marked) {
+      expect(loaded!.reason).toBe("empty");
+      expect(loaded!.reason).not.toBe("malformed");
+    }
+  });
+
+  it("marks a gold set below the minimum unit count as undersized", async () => {
+    const config = await loadConfig(resolve(fixturesDir, "gold-set-config.yaml"));
+    const loaded = config.goldSets.get("judge-study::undersized-gold-set");
+    expect(loaded).toBeDefined();
+    expect(loaded!.marked).toBe(true);
+    if (loaded!.marked) {
+      expect(loaded!.reason).toBe("undersized");
+    }
+  });
+
+  it("marks a gold set with no declared provenance", async () => {
+    const config = await loadConfig(resolve(fixturesDir, "gold-set-config.yaml"));
+    const loaded = config.goldSets.get("judge-study::unprovenanced-gold-set");
+    expect(loaded).toBeDefined();
+    expect(loaded!.marked).toBe(true);
+    if (loaded!.marked) {
+      expect(loaded!.reason).toBe("unprovenanced");
+    }
+  });
+});
+
 describe("loadScenario", () => {
   it("loads a valid scenario file", async () => {
     const scenario = await loadScenario(resolve(fixturesDir, "scenarios/simple.yaml"));
