@@ -415,9 +415,17 @@ function verdictFromAgreement(
 /**
  * The floor stops straddling once its half-width falls under the distance from
  * the calibration band's centre to the threshold, so that distance is the
- * target handed to the labels-needed solver. A threshold sitting exactly on the
- * centre has no such target: no gold-set size separates it, and the figure is
- * reported as absent rather than as infinity.
+ * target handed to the labels-needed solver.
+ *
+ * `anchorRate` is the RAW judged rate, exactly as the guard takes it — the
+ * centre is the anchor plus the interval's own midpoint, never the corrected
+ * estimate plus the interval again.
+ *
+ * A threshold sitting exactly on the centre has no target: no gold-set size
+ * separates it. That is reported as absent rather than as infinity, and the
+ * guard is load-bearing — `labelsNeededForHalfWidth` throws on a non-positive
+ * target. Every other case yields a figure, including a judge with no observed
+ * errors at all, whose zero-count Wilson cells the solver inverts exactly.
  */
 function labelsToClearFloor(
   counts: ConfusionCounts,
@@ -487,6 +495,11 @@ export function certifyJudge(options: CertificationOptions): JudgeCertification 
 
   const counts = pairs.length > 0 ? confusionFromPairs(pairs) : null;
   const rectifier = counts === null ? null : estimateRectifier(counts, alphaC);
+
+  // The RAW judged rate — the share of gold-set units the judge passed. Never
+  // `judged + delta`: the rectifier interval is an interval on `delta` itself,
+  // so anchoring the guard on an already-corrected estimate applies `delta`
+  // twice and silently shifts the whole band.
   const anchorRate =
     options.judgedRate ??
     (counts === null ? null : (counts.tp + counts.fp) / pairs.length);

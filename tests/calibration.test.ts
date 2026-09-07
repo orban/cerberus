@@ -657,6 +657,55 @@ describe("certifyJudge: floor guard (R10)", () => {
     expect(result.labelsNeeded).toBeNull();
   });
 
+  it("anchors on the raw judged rate, not on the corrected estimate", () => {
+    // The tripwire for applying `delta` twice. This judge errs in one direction
+    // only — 2 false negatives, no false positives — so `delta` = +0.10 and the
+    // raw judged rate (0.50) and the corrected estimate (0.60) are far enough
+    // apart to disagree about a threshold between the two bands:
+    //
+    //   anchored on judged 0.50 (correct):    [0.323, 0.837] → straddles 0.35
+    //   anchored on corrected 0.60 (wrong):   [0.423, 0.937] → clears 0.35
+    //
+    // `estimateRectifier`'s interval is an interval on `delta`, so the guard's
+    // first argument has to be the rate `delta` is an offset FROM. Passing
+    // `judged + delta` would flip every assertion below.
+    const built = buildGoldSet({
+      bothPass: 10,
+      bothFail: 8,
+      falseNegatives: 2,
+      falsePositives: 0,
+    });
+    const result = certify(built, { threshold: 0.35 });
+
+    expect(result.verdict).toBe("pass"); // α = 0.80303, so only the floor can refuse
+    expect(result.rectifier!.delta).toBeCloseTo(0.1, 12);
+    expect(result.anchorRate).toBeCloseTo(0.5, 12);
+    expect(result.floorStraddlesThreshold).toBe(true);
+    expect(result.ineligibilityReasons).toEqual(["calibration-floor"]);
+
+    // Spelled out, so the failure message names the bug: a band hung off the
+    // corrected estimate would sit entirely above this threshold.
+    const corrected = result.anchorRate! + result.rectifier!.delta;
+    expect(corrected + result.rectifier!.interval.lower).toBeGreaterThan(0.35);
+  });
+
+  it("still reports a labels-needed figure for a judge with no observed errors", () => {
+    // Zero disagreements, so the Wilson cells are both zero-count and the
+    // normal approximation would collapse; U2 inverts them exactly instead.
+    const built = buildGoldSet({
+      bothPass: 24,
+      bothFail: 0,
+      falseNegatives: 0,
+      falsePositives: 0,
+    });
+    const result = certify(built, { threshold: 0.9 });
+
+    expect(result.rectifier!.delta).toBe(0);
+    expect(result.floorStraddlesThreshold).toBe(true);
+    expect(result.labelsNeeded).not.toBeNull();
+    expect(result.labelsNeeded!).toBeGreaterThan(result.goldSetSize);
+  });
+
   it("reports the floor U2 estimates for the same gold set", () => {
     const built = buildGoldSet({
       bothPass: 45,
