@@ -35,7 +35,36 @@ describe("loadConfig", () => {
   it("applies default values", async () => {
     const config = await loadConfig(resolve(fixturesDir, "valid-config.yaml"));
     expect(config.raw.adapter.timeout).toBe(5000);
-    expect(config.raw.correction).toBe("bh");
+    expect(config.raw.correction).toBe("none");
+  });
+
+  it("rejects the removed multiple-testing corrections", async () => {
+    // "bh" and "bonferroni" were removed because they never performed valid
+    // error control. An old config naming them must fail loudly, not silently
+    // run without a correction it believes it has.
+    const { CerberusConfigSchema } = await import("../src/config.js");
+    const base = {
+      adapter: { command: "node test.js --scenario {{scenario}}" },
+      studies: [{
+        name: "test",
+        scenario: "test.yaml",
+        contracts: [{
+          name: "c",
+          type: "code",
+          assert: "true",
+          threshold: 0.9,
+          trials: 10,
+        }],
+      }],
+    };
+    for (const correction of ["bh", "bonferroni"]) {
+      const result = CerberusConfigSchema.safeParse({ ...base, correction });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]!.message).toContain("removed");
+      }
+    }
+    expect(CerberusConfigSchema.safeParse({ ...base, correction: "none" }).success).toBe(true);
   });
 
   it("validates threshold >= 0.11", async () => {

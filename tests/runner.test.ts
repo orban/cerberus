@@ -127,8 +127,6 @@ describe("code contracts are unaffected by the calibrated path", () => {
       expect(contract.stopReason).toBeUndefined();
       expect(contract.calibrated).toBeUndefined();
       expect(contract.judgedRate).toBeUndefined();
-      // The multiple-comparison correction still runs over all three.
-      expect(contract.correctedAlpha).toBeGreaterThan(0);
     }
   });
 });
@@ -385,39 +383,6 @@ describe("gating vs advisory envelope", () => {
     expect(result.studies[0]!.aborted).toBe(true);
     expect(result.studies[0]!.contractResults[0]!.gating).toBe(false);
     expect(result.status).toBe("fail");
-  }, 30_000);
-
-  it("excludes advisory contracts from the multiple-comparison family", async () => {
-    programJudge("advisory-one", alwaysFails);
-    programJudge("advisory-two", alwaysFails);
-
-    const withAdvisory = await runSuite(
-      await config("advisory-correction-config.yaml"),
-      { json: false },
-    );
-    const baseline = await runSuite(
-      await config("advisory-correction-baseline-config.yaml"),
-      { json: false },
-    );
-
-    const alphas = (result: Awaited<ReturnType<typeof runSuite>>) =>
-      new Map(
-        result.studies
-          .flatMap((s) => s.contractResults)
-          .map((c) => [c.contractName, c.correctedAlpha]),
-      );
-
-    const mixed = alphas(withAdvisory);
-    const alone = alphas(baseline);
-
-    // Advisory contracts spend no alpha budget and receive no corrected alpha.
-    expect(mixed.get("advisory-one")).toBeUndefined();
-    expect(mixed.get("advisory-two")).toBeUndefined();
-
-    // The gating contracts are corrected as a family of two, not of four.
-    expect(mixed.get("exits-cleanly")).toBe(alone.get("exits-cleanly"));
-    expect(mixed.get("parses-json")).toBe(alone.get("parses-json"));
-    expect(mixed.get("exits-cleanly")).toBeGreaterThan(0);
   }, 30_000);
 
   it("reaches each of R12's four advisory reasons, distinctly", async () => {

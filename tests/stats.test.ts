@@ -4,8 +4,6 @@ import {
   createSPRT,
   updateSPRT,
   wilsonScoreInterval,
-  bonferroniCorrection,
-  benjaminiHochbergCorrection,
   _inverseNormalCDF,
 } from "../src/stats.js";
 
@@ -175,59 +173,5 @@ describe("wilsonScoreInterval", () => {
     const ci50 = wilsonScoreInterval(45, 50, 0.95);
     const ci200 = wilsonScoreInterval(180, 200, 0.95);
     expect(ci200.upper - ci200.lower).toBeLessThan(ci50.upper - ci50.lower);
-  });
-});
-
-// ── Multiple testing corrections ─────────────────────────────
-
-describe("bonferroniCorrection", () => {
-  it("divides alpha equally", () => {
-    const corrected = bonferroniCorrection(0.05, 5);
-    expect(corrected).toHaveLength(5);
-    corrected.forEach((a) => expect(a).toBeCloseTo(0.01));
-  });
-
-  it("handles single test", () => {
-    const corrected = bonferroniCorrection(0.05, 1);
-    expect(corrected[0]).toBeCloseTo(0.05);
-  });
-});
-
-describe("benjaminiHochbergCorrection", () => {
-  it("rejects low p-values and keeps high ones", () => {
-    // With 5 tests at alpha=0.05, BH thresholds are: 0.01, 0.02, 0.03, 0.04, 0.05
-    // Sorted p-values compared against thresholds:
-    //   p=0.005 <= 0.01 -> reject (maxK=0)
-    //   p=0.015 <= 0.02 -> reject (maxK=1)
-    //   p=0.025 <= 0.03 -> reject (maxK=2)
-    //   p=0.50  > 0.04  -> stop
-    //   p=0.80  > 0.05  -> stop
-    // BH rejects all up to maxK=2
-    const pValues = [0.005, 0.015, 0.025, 0.50, 0.80];
-    const result = benjaminiHochbergCorrection(pValues, 0.05);
-
-    expect(result.rejected[0]).toBe(true);  // 0.005
-    expect(result.rejected[1]).toBe(true);  // 0.015
-    expect(result.rejected[2]).toBe(true);  // 0.025
-    expect(result.rejected[3]).toBe(false); // 0.50
-    expect(result.rejected[4]).toBe(false); // 0.80
-  });
-
-  it("returns correct structure for empty input", () => {
-    const result = benjaminiHochbergCorrection([], 0.05);
-    expect(result.correctedAlphas).toHaveLength(0);
-    expect(result.rejected).toHaveLength(0);
-  });
-
-  it("is less conservative than Bonferroni", () => {
-    // BH should reject more hypotheses than Bonferroni for the same alpha
-    const pValues = [0.01, 0.02, 0.03, 0.04, 0.05];
-    const bh = benjaminiHochbergCorrection(pValues, 0.05);
-    const bonf = bonferroniCorrection(0.05, pValues.length);
-
-    const bhRejections = bh.rejected.filter(Boolean).length;
-    const bonfRejections = pValues.filter((p, i) => p <= bonf[i]!).length;
-
-    expect(bhRejections).toBeGreaterThanOrEqual(bonfRejections);
   });
 });

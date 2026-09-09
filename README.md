@@ -2,7 +2,9 @@
 
 Reference implementation for [Stop Testing AI Agents Like Deterministic Code](docs/blog/stop-testing-agents-like-deterministic-code.md).
 
-Statistical CI/CD for AI agents — using sequential hypothesis testing (SPRT), Wilson score confidence intervals, and Benjamini-Hochberg correction to answer "does this agent work reliably enough?" instead of "did this test pass?"
+Statistical CI/CD for AI agents — using sequential hypothesis testing (SPRT) and Wilson score confidence intervals to answer "does this agent work reliably enough?" instead of "did this test pass?"
+
+Cerberus does not perform multiple-testing correction across contracts. An earlier Benjamini-Hochberg path fed the procedure placeholder values rather than p-values and never changed a decision, so it was removed rather than left to imply error control that did not happen. Each contract's SPRT error rates are per contract.
 
 ## Quick start
 
@@ -56,7 +58,6 @@ Which file implements which concept from the blog post:
 |---------|------|-------------|
 | SPRT (sequential testing) | [`src/stats.ts`](src/stats.ts) | Log-likelihood ratio, Wald boundaries, accept/reject/continue |
 | Wilson score intervals | [`src/stats.ts`](src/stats.ts) | Confidence intervals that work at 0% and 100% |
-| Benjamini-Hochberg | [`src/stats.ts`](src/stats.ts) | Multiple testing correction (FDR control) |
 | Contract evaluation | [`src/contracts.ts`](src/contracts.ts) | Sandboxed assertion execution via `vm.runInNewContext()` |
 | LLM judge panels | [`src/judges.ts`](src/judges.ts) | Multi-provider judge evaluation with majority vote |
 | Trial execution | [`src/runner.ts`](src/runner.ts) | SPRT loop, process spawning, error rate monitoring |
