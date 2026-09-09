@@ -133,6 +133,8 @@ One caveat: if you're reporting Wilson intervals after SPRT early-stopped, the i
 
 ## The multiple testing trap
 
+> **Correction, 2026-09-09.** This section describes Benjamini-Hochberg as part of the reference implementation, and the README advertised it as FDR control. It wasn't. An audit in July 2026 found that the implementation fed the BH procedure fixed proxy values (0.001 for a passing contract, 0.999 for a failing one, 0.5 for inconclusive) rather than p-values, and that the "corrected alpha" it produced was never read by any decision. No error control across contracts was ever performed. [PR #24](https://github.com/orban/cerberus/pull/24) removed the path rather than leave it implying a guarantee it didn't provide. The argument below about why multiplicity matters still stands; the claim that this codebase handled it does not. Deriving p-values that remain valid after SPRT stopping is a separate problem, and one this project hasn't solved.
+
 Here's a subtler problem. Say you have 10 contracts for your agent, and each has a false rejection rate of α=0.05. In the worst case (agent performing right at the threshold boundary), the probability of at least one spurious rejection across all 10:
 
 ```
@@ -402,6 +404,8 @@ Wilson score is preferred over the normal approximation because it:
 - Has better coverage probability for small n
 
 ### Benjamini-Hochberg procedure
+
+*Correction, 2026-09-09: the reference implementation no longer includes this procedure. See the note in "The multiple testing trap" above.*
 
 Given *m* p-values p₁ ≤ p₂ ≤ ... ≤ pₘ and desired FDR level α:
 
