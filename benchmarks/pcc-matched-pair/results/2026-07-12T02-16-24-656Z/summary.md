@@ -2,7 +2,6 @@
 
 | fixture | policy | mode | expected | verdicts (n) | consistent | evidentiary reason | cell pass |
 |---|---|---|---|---|---|---|---|
-| case-01 | default | det | NOT pass/pass-with-warnings | split-required×5 | true | no | FAIL |
 | case-05 | default | det | pass/pass-with-warnings | pass×5 | true | no | PASS |
 | case-05 | default | llm | pass/pass-with-warnings | pass×4, needs-evidence×1 | false | no | FAIL |
 | case-05 | strict | det | pass/pass-with-warnings | needs-evidence×5 | true | no | FAIL |

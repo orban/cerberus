@@ -14,7 +14,7 @@ If that discrimination works, it is a real capability no other reviewer tool doc
 
 ## Design: the matched pair
 
-Two PRs against the same base tree. Both correct the same SPRT boundary defect in `src/stats.ts`, both touch `tests/stats.test.ts` the same way, both add a new file `tests/boundary-decision.test.ts` with the same two test names, and both carry a byte-identical PR description claiming the new test's values were "derived from Wald's error-bound inequalities, independently of the implementation."
+Two PRs against the same base tree. Both correct the same defect in `src/stats.ts`: the sequential probability ratio test (SPRT) that decides pass or fail used the accept and reject boundaries for the wrong likelihood-ratio convention, so the advertised 5% false-rejection rate was really about 15%. Both touch `tests/stats.test.ts` the same way, both add a new file `tests/boundary-decision.test.ts` with the same two test names, and both carry a byte-identical PR description claiming the new test's values were "derived from Wald's error-bound inequalities, independently of the implementation."
 
 Exactly one file differs between the two fixture trees, and only in where its expected values came from:
 
@@ -25,7 +25,7 @@ Exactly one file differs between the two fixture trees, and only in where its ex
 | is the description's independence claim true? | yes | no |
 | correct verdict | pass | needs-evidence or block |
 
-`diff -r fixtures/case-05 fixtures/case-06` shows the single differing file. `results/fixture-integrity/matched-pair-integrity.txt` records that both head trees pass their own suites and that case-05's test fails against the buggy implementation. Ground-truth evidence independence is the only manipulated variable.
+`diff -r fixtures/case-05 fixtures/case-06` shows the single differing file. `results/fixture-integrity/matched-pair-integrity.txt` records that both head trees pass their own suites and that case-05's test fails against the buggy implementation. It is an unedited log from the original run, and its last line mentions case-01: that is the historical PR that introduced the defect, whose own boundary test had exactly case-06's mirrored shape. Case-01 is not part of this package. Ground-truth evidence independence is the only manipulated variable.
 
 Each case ran under two policies (the product's advisory-first default, and a strict policy with block rules on and an invariant requiring independent evidence for `src/stats.ts`) and two modes (deterministic claim extraction, and LLM claim extraction with `gpt-5.2`), five runs per cell in separate processes. Forty invocations of the real CLI, in freshly built two-commit repositories that contain nothing naming the benchmark or the expected verdict.
 
@@ -90,7 +90,7 @@ The engine lives only on the closed branch, so reproduction checks out that comm
 - With `OPENAI_API_KEY`, the LLM cells run against `gpt-5.2` by default. Expect the acceptance counts to vary by a run or two; the three facts above should not.
 - Set `LLM_RUNS=0` to skip LLM mode explicitly, `DET_RUNS` and `MODEL` to override the defaults.
 
-The script prints the matched-pair rows of the new `summary.md` and the path to the new raw records. It does not touch this package's results.
+The script prints the matched-pair rows of the new `summary.md` and the path to the new raw records. It does not touch this package's results. The original benchmark runner also leaves the six constructed case repositories under the system temp directory and prints their path "for inspection"; the script's cleanup removes the worktree but leaves those, since they are the runner's behaviour at the frozen commit.
 
 ## Provenance
 
@@ -98,7 +98,8 @@ The script prints the matched-pair rows of the new `summary.md` and the path to 
 |---|---|
 | product commit | `1530af5675541fd685d1ab7075a14337c198b3d5` on `feat/proof-carrying-changes` |
 | benchmark and results commit | `c90ca80730875319b91564290f69f5d685050477` |
-| scored run | `benchmarks/pcc/results/2026-07-12T02-16-24-656Z/` (r3: corrected scorer, clean rerun, 120 records) |
+| original scored run | `benchmarks/pcc/results/2026-07-12T02-16-24-656Z/` at commit `c90ca80`: the third and final revision of the benchmark, 120 records across six cases |
+| this package's copy | `results/2026-07-12T02-16-24-656Z/` here: the same directory name, holding only the 40 case-05 and case-06 records and the summary rows for those cells |
 | case base tree | `ca7cf45` (Cerberus MVP, buggy boundaries) plus per-case overlays |
 | LLM | `gpt-5.2`, claim extraction only |
 | run date | 2026-07-12 |

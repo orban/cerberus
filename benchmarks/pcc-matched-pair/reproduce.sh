@@ -14,6 +14,10 @@
 #   MODEL            claim-extraction model (default gpt-5.2)
 #   WORKTREE         directory for the worktree (default: a fresh temp dir)
 #   KEEP_WORKTREE=1  leave the worktree in place afterwards
+#
+# The benchmark runner at the frozen commit leaves its six constructed case
+# repositories under the system temp directory and prints their path. This
+# script does not remove them; that is the runner's own behaviour.
 
 set -euo pipefail
 
