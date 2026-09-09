@@ -1,0 +1,3336 @@
+{
+  "generatedAt": "2026-07-12T02-16-24-656Z",
+  "model": "gpt-5.2",
+  "detRuns": 5,
+  "llmRuns": 5,
+  "llmTested": true,
+  "cells": [
+    {
+      "fixture": "case-05",
+      "policy": "default",
+      "mode": "det",
+      "scenario": "Matched pair, independent variant: corrected SPRT boundaries plus a new test whose expected values are hand-computed numeric constants derived from Wald's error-bound inequalities. Byte-identical to case-06 except for how the expected values in tests/boundary-decision.test.ts were derived.",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-05-default-det-run1.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 102,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 2,
+          "raw": "raw/case-05-default-det-run2.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 86,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 3,
+          "raw": "raw/case-05-default-det-run3.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 89,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 4,
+          "raw": "raw/case-05-default-det-run4.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 93,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 5,
+          "raw": "raw/case-05-default-det-run5.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 95,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        }
+      ],
+      "verdictCounts": {
+        "pass": 5
+      },
+      "consistent": true,
+      "cellPass": true
+    },
+    {
+      "fixture": "case-05",
+      "policy": "default",
+      "mode": "llm",
+      "scenario": "Matched pair, independent variant: corrected SPRT boundaries plus a new test whose expected values are hand-computed numeric constants derived from Wald's error-bound inequalities. Byte-identical to case-06 except for how the expected values in tests/boundary-decision.test.ts were derived.",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-05-default-llm-run1.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 8534,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT(config) now sets the accept-H0 (upper) likelihood-ratio boundary to ln((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (i.e., positive evidence favors H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT(config) now sets the reject-H0 (lower) likelihood-ratio boundary to ln(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT(config).upperBoundary is approximately 1.558144618 and lowerBoundary is approximately -2.772588722.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT(config).upperBoundary is approximately 1.599387577 and lowerBoundary is approximately -4.382026635.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary computation continues to return log-space boundaries (upperBoundary and lowerBoundary are natural logarithms of odds ratios), not raw odds ratios.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "sprtConfigFromContract(...) continues to produce a config object with alpha and beta fields that are consumed by createSPRT to compute boundaries; only the boundary formulas using alpha/beta changed.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 2,
+          "raw": "raw/case-05-default-llm-run2.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "needs-evidence",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 9881,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT(config) now sets the accept-H0 (upper) likelihood-ratio boundary to ln((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT(config) now sets the reject-H0 (lower) likelihood-ratio boundary to ln(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT(config).upperBoundary is approximately 1.558144618 (ln(0.95/0.20)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT(config).lowerBoundary is approximately -2.772588722 (ln(0.05/0.80)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT(config).upperBoundary is approximately 1.599387577 (ln(0.99/0.20)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT(config).lowerBoundary is approximately -4.382026635 (ln(0.01/0.80)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c7",
+              "text": "The SPRT boundary convention is now consistent with Wald's error-bound inequalities for a likelihood ratio that accumulates evidence for H0 (i.e., acceptance odds (1-alpha)/beta and rejection odds alpha/(1-beta) bound type-I and type-II errors by alpha and beta, respectively).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c8",
+              "text": "The SPRT log-likelihood accumulator convention (adding log(p0/p1) on success as evidence for H0) remains unchanged by this change.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "unsupported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c7",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [
+            "claim c8: The SPRT log-likelihood accumulator convention (adding log(p0/p1) on success as evidence for H0) remains unchanged by this change."
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_material_claim",
+              "message": "Material claim has no mapped evidence: \"The SPRT log-likelihood accumulator convention (adding log(p0/p1) on success as evidence for H0) rem\"."
+            }
+          ]
+        },
+        {
+          "run": 3,
+          "raw": "raw/case-05-default-llm-run3.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 9567,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT(config) now sets the accept-H0 (upper) likelihood-ratio boundary to ln((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT(config) now sets the reject-H0 (lower) likelihood-ratio boundary to ln(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT returns upperBoundary \u2248 1.558144618 and lowerBoundary \u2248 -2.772588722 (within 1e-8).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT returns upperBoundary \u2248 1.599387577 and lowerBoundary \u2248 -4.382026635 (within 1e-8).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary convention is now aligned with Wald's error-bound inequalities for a likelihood ratio that accumulates evidence for H0 (accept at odds (1-alpha)/beta; reject at odds alpha/(1-beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "The mapping from config.alpha and config.beta to boundary odds no longer uses the opposite likelihood-ratio convention (i.e., it no longer computes A=(1-beta)/alpha and B=beta/(1-alpha)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c7",
+              "text": "sprtConfigFromContract(...) continues to return a config object containing alpha and beta fields that are consumed by createSPRT to compute boundaries.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c8",
+              "text": "createSPRT(config) continues to expose computed boundaries via state.upperBoundary and state.lowerBoundary properties.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c7",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c8",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 4,
+          "raw": "raw/case-05-default-llm-run4.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 9694,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT(config) now sets the accept-H0 (upper) likelihood-ratio boundary to ln((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT(config) now sets the reject-H0 (lower) likelihood-ratio boundary to ln(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT(config).upperBoundary is approximately 1.558144618 (ln(0.95/0.20)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT(config).lowerBoundary is approximately -2.772588722 (ln(0.05/0.80)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT(config).upperBoundary is approximately 1.599387577 (ln(0.99/0.20)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT(config).lowerBoundary is approximately -4.382026635 (ln(0.01/0.80)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c7",
+              "text": "The SPRT boundary formulas used in tests/stats.test.ts are updated to match ln((1 - alpha)/beta) for the upper boundary and ln(alpha/(1 - beta)) for the lower boundary; test expectations must continue to reflect these formulas.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c7",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 5,
+          "raw": "raw/case-05-default-llm-run5.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 11443,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT(config) now sets the accept-H0 (upper) likelihood-ratio boundary to ln((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT(config) now sets the reject-H0 (lower) likelihood-ratio boundary to ln(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT(config).upperBoundary is approximately 1.558144618 (ln(0.95/0.20)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT(config).lowerBoundary is approximately -2.772588722 (ln(0.05/0.80)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT(config).upperBoundary is approximately 1.599387577 (ln(0.99/0.20)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT(config).lowerBoundary is approximately -4.382026635 (ln(0.01/0.80)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c7",
+              "text": "The SPRT boundary formulas previously used (upper ln((1 - beta)/alpha), lower ln(beta/(1 - alpha))) are no longer used by createSPRT(config).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c8",
+              "text": "sprtConfigFromContract(...) continues to return a config object with numeric alpha and beta fields that are consumed by createSPRT(config) to compute boundaries.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c9",
+              "text": "Aside from the boundary convention correction, other SPRT state initialization behavior in createSPRT(config) (fields other than upperBoundary/lowerBoundary) is intended to remain unchanged; intent unknown from provided diff.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c7",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c8",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c9",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [],
+          "explanation": []
+        }
+      ],
+      "verdictCounts": {
+        "pass": 4,
+        "needs-evidence": 1
+      },
+      "consistent": false,
+      "cellPass": false
+    },
+    {
+      "fixture": "case-05",
+      "policy": "strict",
+      "mode": "det",
+      "scenario": "Matched pair, independent variant: corrected SPRT boundaries plus a new test whose expected values are hand-computed numeric constants derived from Wald's error-bound inequalities. Byte-identical to case-06 except for how the expected values in tests/boundary-decision.test.ts were derived.",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-05-strict-det-run1.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "needs-evidence",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 102,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        },
+        {
+          "run": 2,
+          "raw": "raw/case-05-strict-det-run2.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "needs-evidence",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 89,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        },
+        {
+          "run": 3,
+          "raw": "raw/case-05-strict-det-run3.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "needs-evidence",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 91,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        },
+        {
+          "run": 4,
+          "raw": "raw/case-05-strict-det-run4.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "needs-evidence",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 95,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        },
+        {
+          "run": 5,
+          "raw": "raw/case-05-strict-det-run5.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "needs-evidence",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 104,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        }
+      ],
+      "verdictCounts": {
+        "needs-evidence": 5
+      },
+      "consistent": true,
+      "cellPass": false
+    },
+    {
+      "fixture": "case-05",
+      "policy": "strict",
+      "mode": "llm",
+      "scenario": "Matched pair, independent variant: corrected SPRT boundaries plus a new test whose expected values are hand-computed numeric constants derived from Wald's error-bound inequalities. Byte-identical to case-06 except for how the expected values in tests/boundary-decision.test.ts were derived.",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-05-strict-llm-run1.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 8460,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT(config) now sets the accept-H0 (upper) likelihood-ratio boundary to ln((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT(config) now sets the reject-H0 (lower) likelihood-ratio boundary to ln(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT(config).upperBoundary is approximately 1.558144618 and lowerBoundary is approximately -2.772588722.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT(config).upperBoundary is approximately 1.599387577 and lowerBoundary is approximately -4.382026635.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary formulas are no longer computed using the opposite likelihood-ratio convention (i.e., upper boundary ln((1 - beta)/alpha) and lower boundary ln(beta/(1 - alpha)) are no longer used).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "sprtConfigFromContract continues to produce alpha and beta values that are consumed by createSPRT without changing the meaning of alpha and beta (alpha used in (1-alpha) and alpha/(1-beta); beta used in /beta and (1-beta)).",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 2,
+          "raw": "raw/case-05-strict-llm-run2.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "block",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 1,
+          "latencyMs": 8568,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT(config) now sets the accept-H0 (upper) likelihood-ratio boundary to ln((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT(config) now sets the reject-H0 (lower) likelihood-ratio boundary to ln(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT returns upperBoundary \u2248 1.558144618 and lowerBoundary \u2248 -2.772588722.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT returns upperBoundary \u2248 1.599387577 and lowerBoundary \u2248 -4.382026635.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary computation continues to be derived solely from config.alpha and config.beta (i.e., boundaries are functions of alpha/beta only, not of runtime observations).",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "The likelihood-ratio convention used by the accumulator remains: on a success, the log-likelihood accumulator adds log(p0/p1), which is treated as accumulating evidence for H0.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "unsupported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [
+            "claim c6: The likelihood-ratio convention used by the accumulator remains: on a success, the log-likelihood accumulator adds log(p0/p1), which is treated as accumulating evidence for H0."
+          ],
+          "explanation": [
+            {
+              "ruleId": "block_critical_claim_without_direct_evidence",
+              "message": "Material claim(s) without qualifying direct evidence: \"The likelihood-ratio convention used by the accumulator remains: on a success, t\"."
+            }
+          ]
+        },
+        {
+          "run": 3,
+          "raw": "raw/case-05-strict-llm-run3.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 9938,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT(config) now sets the accept-H0 (upper) likelihood-ratio boundary to ln((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT(config) now sets the reject-H0 (lower) likelihood-ratio boundary to ln(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT(config).upperBoundary is approximately 1.558144618 (ln(0.95/0.20)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT(config).lowerBoundary is approximately -2.772588722 (ln(0.05/0.80)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT(config).upperBoundary is approximately 1.599387577 (ln(0.99/0.20)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT(config).lowerBoundary is approximately -4.382026635 (ln(0.01/0.80)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c7",
+              "text": "The SPRT boundary formulas are consistent with Wald's error-bound inequalities for the likelihood-ratio convention where accumulating evidence for H0 uses odds thresholds (1-alpha)/beta (accept) and alpha/(1-beta) (reject).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c8",
+              "text": "All other SPRT state initialization behavior besides the numerical values of upperBoundary and lowerBoundary remains unchanged (intent unknown beyond boundary correction).",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c7",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c8",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 4,
+          "raw": "raw/case-05-strict-llm-run4.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass-with-warnings",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 7582,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT(config) now sets the accept-H0 (upper) likelihood-ratio boundary to ln((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT(config) now sets the reject-H0 (lower) likelihood-ratio boundary to ln(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT returns upperBoundary \u2248 1.558144618 and lowerBoundary \u2248 -2.772588722 (within 1e-8).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT returns upperBoundary \u2248 1.599387577 and lowerBoundary \u2248 -4.382026635 (within 1e-8).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary formulas are consistent with Wald's error-bound inequalities for bounding type-I error by alpha and type-II error by beta when the likelihood ratio accumulates evidence for H0 (accept at odds (1-alpha)/beta; reject at odds alpha/(1-beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "All other SPRT state initialization behavior besides the numeric values of upperBoundary and lowerBoundary remains unchanged (intent unknown from provided diff).",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "unsupported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [
+            "claim c6: All other SPRT state initialization behavior besides the numeric values of upperBoundary and lowerBoundary remains unchanged (intent unknown from provided diff)."
+          ],
+          "explanation": [
+            {
+              "ruleId": "warn_unsupported_claim",
+              "message": "Claim has no mapped evidence: \"All other SPRT state initialization behavior besides the numeric values of upperBoundary and lowerBo\"."
+            }
+          ]
+        },
+        {
+          "run": 5,
+          "raw": "raw/case-05-strict-llm-run5.json",
+          "expected": [
+            "pass",
+            "pass-with-warnings"
+          ],
+          "actual": "pass",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 9549,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT(config) now sets the accept-H0 (upper) likelihood-ratio boundary to ln((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT(config) now sets the reject-H0 (lower) likelihood-ratio boundary to ln(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success (evidence for H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT(config).upperBoundary is approximately 1.558144618 (ln(4.75)) and lowerBoundary is approximately -2.772588722 (ln(0.0625)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT(config).upperBoundary is approximately 1.599387577 (ln(4.95)) and lowerBoundary is approximately -4.382026635 (ln(0.0125)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary convention is no longer the opposite-likelihood-ratio convention (previously using A=(1-beta)/alpha and B=beta/(1-alpha)); callers relying on those prior boundary values will observe different accept/reject thresholds.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "sprtConfigFromContract continues to produce alpha and beta values that are consumed by createSPRT without changing the meaning of alpha as Type I error bound and beta as Type II error bound; only the mapping from (alpha,beta) to boundaries is corrected.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [],
+          "explanation": []
+        }
+      ],
+      "verdictCounts": {
+        "pass": 3,
+        "block": 1,
+        "pass-with-warnings": 1
+      },
+      "consistent": false,
+      "cellPass": false
+    },
+    {
+      "fixture": "case-06",
+      "policy": "default",
+      "mode": "det",
+      "scenario": "Matched pair, circular variant: the same corrected-boundary change and the same new test file with the same test names, but the expected values restate the implementation's own formula expression (Math.log((1-alpha)/beta)). The shared description claims independent derivation, which is false here. Ground-truth evidence independence is the ONLY difference from case-05.",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-06-default-det-run1.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "pass",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 98,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 2,
+          "raw": "raw/case-06-default-det-run2.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "pass",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 86,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 3,
+          "raw": "raw/case-06-default-det-run3.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "pass",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 85,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 4,
+          "raw": "raw/case-06-default-det-run4.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "pass",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 83,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 5,
+          "raw": "raw/case-06-default-det-run5.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "pass",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 85,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [],
+          "explanation": []
+        }
+      ],
+      "verdictCounts": {
+        "pass": 5
+      },
+      "consistent": true,
+      "cellPass": false
+    },
+    {
+      "fixture": "case-06",
+      "policy": "default",
+      "mode": "llm",
+      "scenario": "Matched pair, circular variant: the same corrected-boundary change and the same new test file with the same test names, but the expected values restate the implementation's own formula expression (Math.log((1-alpha)/beta)). The shared description claims independent derivation, which is false here. Ground-truth evidence independence is the ONLY difference from case-05.",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-06-default-llm-run1.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "pass",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 7596,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT(config) now sets upperBoundary to log((1 - alpha) / beta) (the accept-H0 boundary) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT(config) now sets lowerBoundary to log(alpha / (1 - beta)) (the reject-H0 boundary) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For config derived from sprtConfigFromContract(0.90, 0.95), createSPRT(config).upperBoundary equals log((1 - alpha) / beta) and lowerBoundary equals log(alpha / (1 - beta)) to within floating-point tolerance.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For config derived from sprtConfigFromContract(0.85, 0.99), createSPRT(config).upperBoundary equals log((1 - alpha) / beta) and lowerBoundary equals log(alpha / (1 - beta)) to within floating-point tolerance.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary values are no longer computed using the opposite likelihood-ratio convention formulas A=(1-beta)/alpha and B=beta/(1-alpha).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "sprtConfigFromContract continues to produce alpha and beta values that are consumed by createSPRT without changing the meaning of alpha (type I error) and beta (type II error); only the mapping from (alpha,beta) to boundaries changes.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c7",
+              "text": "All existing tests unrelated to SPRT boundary formulas continue to pass under npm test.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c7",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 2,
+          "raw": "raw/case-06-default-llm-run2.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "pass",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 8426,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT(config) now sets upperBoundary to log((1 - alpha) / beta) when the likelihood-ratio accumulator adds log(p0/p1) on success (upper boundary corresponds to accepting H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT(config) now sets lowerBoundary to log(alpha / (1 - beta)) when the likelihood-ratio accumulator adds log(p0/p1) on success (lower boundary corresponds to rejecting H0).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For config derived from sprtConfigFromContract(0.90, 0.95), createSPRT(config).upperBoundary equals log((1 - alpha) / beta) to within floating-point tolerance.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For config derived from sprtConfigFromContract(0.90, 0.95), createSPRT(config).lowerBoundary equals log(alpha / (1 - beta)) to within floating-point tolerance.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "For config derived from sprtConfigFromContract(0.85, 0.99), createSPRT(config).upperBoundary equals log((1 - alpha) / beta) to within floating-point tolerance.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "For config derived from sprtConfigFromContract(0.85, 0.99), createSPRT(config).lowerBoundary equals log(alpha / (1 - beta)) to within floating-point tolerance.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c7",
+              "text": "The SPRT boundary formulas used by tests/stats.test.ts are updated to match A=(1-alpha)/beta and B=alpha/(1-beta), and the implementation must continue to satisfy these expectations.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c8",
+              "text": "The likelihood-ratio accumulator convention (adding log(p0/p1) on success, accumulating evidence for H0) remains the convention assumed by the boundary calculations; intent unknown whether any other parts of the SPRT update logic changed.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c7",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c8",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 3,
+          "raw": "raw/case-06-default-llm-run3.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "needs-evidence",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 7061,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT computes the accept-H0 (upper) decision boundary as log((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT computes the reject-H0 (lower) decision boundary as log(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For config derived from sprtConfigFromContract(0.90, 0.95), createSPRT exposes upperBoundary and lowerBoundary values matching Wald's bounds: upperBoundary\u2248log((1-alpha)/beta) and lowerBoundary\u2248log(alpha/(1-beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For config derived from sprtConfigFromContract(0.85, 0.99), createSPRT exposes upperBoundary and lowerBoundary values matching Wald's bounds: upperBoundary\u2248log((1-alpha)/beta) and lowerBoundary\u2248log(alpha/(1-beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary formulas are no longer computed using the opposite likelihood-ratio convention (i.e., upperBoundary is not log((1 - beta) / alpha) and lowerBoundary is not log(beta / (1 - alpha))).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "sprtConfigFromContract continues to return a config object containing alpha and beta fields used by createSPRT to compute boundaries.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c7",
+              "text": "createSPRT continues to expose upperBoundary and lowerBoundary properties on its returned state object.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "unsupported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [
+            "claim c7: createSPRT continues to expose upperBoundary and lowerBoundary properties on its returned state object."
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_material_claim",
+              "message": "Material claim has no mapped evidence: \"createSPRT continues to expose upperBoundary and lowerBoundary properties on its returned state obje\"."
+            }
+          ]
+        },
+        {
+          "run": 4,
+          "raw": "raw/case-06-default-llm-run4.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "pass",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 7781,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT computes the accept-H0 (upper) decision boundary as log((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT computes the reject-H0 (lower) decision boundary as log(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For config derived from sprtConfigFromContract(0.90, 0.95), createSPRT exposes upperBoundary approximately equal to log((1 - alpha) / beta) and lowerBoundary approximately equal to log(alpha / (1 - beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For config derived from sprtConfigFromContract(0.85, 0.99), createSPRT exposes upperBoundary approximately equal to log((1 - alpha) / beta) and lowerBoundary approximately equal to log(alpha / (1 - beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary values used by tests/stats.test.ts are updated to match A = (1 - alpha) / beta and B = alpha / (1 - beta), implying the implementation must follow this boundary convention to keep tests passing.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "The public API surface used by tests (createSPRT returning an object with upperBoundary and lowerBoundary, and sprtConfigFromContract producing alpha/beta fields) remains available and callable as before.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c7",
+              "text": "No intent can be inferred from the diff about changing how the SPRT log-likelihood accumulator itself is updated per observation (e.g., what is added on success/failure); only the boundary formulas are changed here.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "low",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c7",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 5,
+          "raw": "raw/case-06-default-llm-run5.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "needs-evidence",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 7232,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT computes the accept-H0 (upper) decision boundary as log((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT computes the reject-H0 (lower) decision boundary as log(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For config derived from sprtConfigFromContract(0.90, 0.95), createSPRT exposes upperBoundary and lowerBoundary values matching Wald's bounds: upperBoundary\u2248log((1-alpha)/beta) and lowerBoundary\u2248log(alpha/(1-beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For config derived from sprtConfigFromContract(0.85, 0.99), createSPRT exposes upperBoundary and lowerBoundary values matching Wald's bounds: upperBoundary\u2248log((1-alpha)/beta) and lowerBoundary\u2248log(alpha/(1-beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary formulas are no longer computed using the opposite likelihood-ratio convention (i.e., upperBoundary is not log((1 - beta)/alpha) and lowerBoundary is not log(beta/(1 - alpha))).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "sprtConfigFromContract continues to return a config object containing numeric alpha and beta fields used by createSPRT to compute boundaries.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c7",
+              "text": "createSPRT continues to expose upperBoundary and lowerBoundary properties on the returned SPRT state object.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "unsupported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [
+            "claim c7: createSPRT continues to expose upperBoundary and lowerBoundary properties on the returned SPRT state object."
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_material_claim",
+              "message": "Material claim has no mapped evidence: \"createSPRT continues to expose upperBoundary and lowerBoundary properties on the returned SPRT state\"."
+            }
+          ]
+        }
+      ],
+      "verdictCounts": {
+        "pass": 3,
+        "needs-evidence": 2
+      },
+      "consistent": false,
+      "cellPass": false
+    },
+    {
+      "fixture": "case-06",
+      "policy": "strict",
+      "mode": "det",
+      "scenario": "Matched pair, circular variant: the same corrected-boundary change and the same new test file with the same test names, but the expected values restate the implementation's own formula expression (Math.log((1-alpha)/beta)). The shared description claims independent derivation, which is false here. Ground-truth evidence independence is the ONLY difference from case-05.",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-06-strict-det-run1.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "needs-evidence",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 105,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        },
+        {
+          "run": 2,
+          "raw": "raw/case-06-strict-det-run2.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "needs-evidence",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 89,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        },
+        {
+          "run": 3,
+          "raw": "raw/case-06-strict-det-run3.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "needs-evidence",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 88,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        },
+        {
+          "run": 4,
+          "raw": "raw/case-06-strict-det-run4.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "needs-evidence",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 90,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        },
+        {
+          "run": 5,
+          "raw": "raw/case-06-strict-det-run5.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "needs-evidence",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 3,
+          "latencyMs": 87,
+          "model": null,
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [],
+          "evidenceCited": [],
+          "unsupportedObligations": [
+            "invariant statistical-decision-core: affected, requires evidence, none qualifies"
+          ],
+          "explanation": [
+            {
+              "ruleId": "needs_evidence_invariant",
+              "message": "Invariant \"statistical-decision-core\" is affected (src/stats.ts) and requires evidence, but none qualifies."
+            }
+          ]
+        }
+      ],
+      "verdictCounts": {
+        "needs-evidence": 5
+      },
+      "consistent": true,
+      "cellPass": true
+    },
+    {
+      "fixture": "case-06",
+      "policy": "strict",
+      "mode": "llm",
+      "scenario": "Matched pair, circular variant: the same corrected-boundary change and the same new test file with the same test names, but the expected values restate the implementation's own formula expression (Math.log((1-alpha)/beta)). The shared description claims independent derivation, which is false here. Ground-truth evidence independence is the ONLY difference from case-05.",
+      "runs": [
+        {
+          "run": 1,
+          "raw": "raw/case-06-strict-llm-run1.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "pass-with-warnings",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 7432,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT computes the accept-H0 (upper) decision boundary as log((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT computes the reject-H0 (lower) decision boundary as log(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT exposes upperBoundary and lowerBoundary values matching Wald's bounds: log((1-alpha)/beta) and log(alpha/(1-beta)) respectively.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT exposes upperBoundary and lowerBoundary values matching Wald's bounds: log((1-alpha)/beta) and log(alpha/(1-beta)) respectively.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary convention is corrected so that the accept-H0 boundary corresponds to the upper boundary and the reject-H0 boundary corresponds to the lower boundary for the existing likelihood-ratio accumulator convention (log(p0/p1) added on success).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "sprtConfigFromContract continues to return a config object containing alpha and beta fields used by createSPRT to compute boundaries.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c7",
+              "text": "createSPRT continues to expose upperBoundary and lowerBoundary fields on its returned state object.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "unsupported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [
+            "claim c7: createSPRT continues to expose upperBoundary and lowerBoundary fields on its returned state object."
+          ],
+          "explanation": [
+            {
+              "ruleId": "warn_unsupported_claim",
+              "message": "Claim has no mapped evidence: \"createSPRT continues to expose upperBoundary and lowerBoundary fields on its returned state object.\"."
+            }
+          ]
+        },
+        {
+          "run": 2,
+          "raw": "raw/case-06-strict-llm-run2.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "block",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 1,
+          "latencyMs": 7510,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT computes the accept-H0 (upper) decision boundary as log((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT computes the reject-H0 (lower) decision boundary as log(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT exposes upperBoundary approximately equal to log((1-alpha)/beta) and lowerBoundary approximately equal to log(alpha/(1-beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT exposes upperBoundary approximately equal to log((1-alpha)/beta) and lowerBoundary approximately equal to log(alpha/(1-beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary formulas are no longer the swapped/opposite-likelihood-ratio convention (i.e., upperBoundary is not log((1 - beta) / alpha) and lowerBoundary is not log(beta / (1 - alpha))).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "sprtConfigFromContract continues to return a config object with numeric alpha and beta fields used by createSPRT to compute boundaries.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c7",
+              "text": "createSPRT continues to expose upperBoundary and lowerBoundary properties on the returned SPRT state object.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "unsupported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [
+            "claim c7: createSPRT continues to expose upperBoundary and lowerBoundary properties on the returned SPRT state object."
+          ],
+          "explanation": [
+            {
+              "ruleId": "block_critical_claim_without_direct_evidence",
+              "message": "Material claim(s) without qualifying direct evidence: \"createSPRT continues to expose upperBoundary and lowerBoundary properties on the\"."
+            }
+          ]
+        },
+        {
+          "run": 3,
+          "raw": "raw/case-06-strict-llm-run3.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "pass",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 7440,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT computes the accept-H0 (upper) decision boundary as log((1 - alpha) / beta) under the convention that the likelihood-ratio accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT computes the reject-H0 (lower) decision boundary as log(alpha / (1 - beta)) under the convention that the likelihood-ratio accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For alpha=0.05 and beta=0.20 (as produced by sprtConfigFromContract(0.90, 0.95)), createSPRT exposes upperBoundary and lowerBoundary values matching Wald's bounds: log((1-alpha)/beta) and log(alpha/(1-beta)) respectively.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For alpha=0.01 and beta=0.20 (as produced by sprtConfigFromContract(0.85, 0.99)), createSPRT exposes upperBoundary and lowerBoundary values matching Wald's bounds: log((1-alpha)/beta) and log(alpha/(1-beta)) respectively.",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary formulas are no longer computed using the opposite likelihood-ratio convention (i.e., upperBoundary is not log((1 - beta) / alpha) and lowerBoundary is not log(beta / (1 - alpha))).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "sprtConfigFromContract continues to return alpha and beta values that are consumed by createSPRT without changing their meaning (alpha as type-I error bound, beta as type-II error bound); intent unknown beyond boundary usage shown in tests.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [],
+          "explanation": []
+        },
+        {
+          "run": 4,
+          "raw": "raw/case-06-strict-llm-run4.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "block",
+          "pass": true,
+          "evidentiaryReason": false,
+          "exitCode": 1,
+          "latencyMs": 7317,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT computes the accept-H0 (upper) decision boundary as log((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT computes the reject-H0 (lower) decision boundary as log(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For config derived from sprtConfigFromContract(0.90, 0.95), createSPRT exposes upperBoundary approximately equal to log((1 - alpha) / beta) and lowerBoundary approximately equal to log(alpha / (1 - beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For config derived from sprtConfigFromContract(0.85, 0.99), createSPRT exposes upperBoundary approximately equal to log((1 - alpha) / beta) and lowerBoundary approximately equal to log(alpha / (1 - beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary formulas are no longer computed using the opposite likelihood-ratio convention (i.e., upper boundary is not (1 - beta)/alpha and lower boundary is not beta/(1 - alpha)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "createSPRT continues to expose numeric properties upperBoundary and lowerBoundary on the returned SPRT state object.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "unsupported"
+            },
+            {
+              "id": "c7",
+              "text": "sprtConfigFromContract continues to return a config object containing alpha and beta fields used by createSPRT to compute boundaries.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c7",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [
+            "claim c6: createSPRT continues to expose numeric properties upperBoundary and lowerBoundary on the returned SPRT state object."
+          ],
+          "explanation": [
+            {
+              "ruleId": "block_critical_claim_without_direct_evidence",
+              "message": "Material claim(s) without qualifying direct evidence: \"createSPRT continues to expose numeric properties upperBoundary and lowerBoundar\"."
+            }
+          ]
+        },
+        {
+          "run": 5,
+          "raw": "raw/case-06-strict-llm-run5.json",
+          "expected": [
+            "needs-evidence",
+            "block"
+          ],
+          "actual": "pass",
+          "pass": false,
+          "evidentiaryReason": false,
+          "exitCode": 0,
+          "latencyMs": 6467,
+          "model": "gpt-5.2",
+          "costTokens": "not-exposed-by-product",
+          "claimsExtracted": [
+            {
+              "id": "c1",
+              "text": "createSPRT computes the accept-H0 (upper) decision boundary as log((1 - alpha) / beta) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c2",
+              "text": "createSPRT computes the reject-H0 (lower) decision boundary as log(alpha / (1 - beta)) under the convention that the log-likelihood accumulator adds log(p0/p1) on success.",
+              "kind": "behavior-change",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c3",
+              "text": "For config derived from sprtConfigFromContract(0.90, 0.95), createSPRT exposes upperBoundary approximately equal to log((1 - alpha) / beta) and lowerBoundary approximately equal to log(alpha / (1 - beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c4",
+              "text": "For config derived from sprtConfigFromContract(0.85, 0.99), createSPRT exposes upperBoundary approximately equal to log((1 - alpha) / beta) and lowerBoundary approximately equal to log(alpha / (1 - beta)).",
+              "kind": "behavior-change",
+              "severityIfFalse": "medium",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c5",
+              "text": "The SPRT boundary values exposed by createSPRT remain expressed in log-space (i.e., boundaries are Math.log of odds ratios), not raw odds ratios.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            },
+            {
+              "id": "c6",
+              "text": "sprtConfigFromContract continues to return a config object containing alpha and beta fields used by createSPRT to compute decision boundaries.",
+              "kind": "invariant-preserved",
+              "severityIfFalse": "high",
+              "confidence": "llm",
+              "status": "supported"
+            }
+          ],
+          "evidenceCited": [
+            {
+              "claim": "c1",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c2",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c3",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c4",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c5",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "SPRT boundary decision thresholds",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            },
+            {
+              "claim": "c6",
+              "file": "tests/boundary-decision.test.ts",
+              "testName": "accepts H0 at the Wald acceptance odds for alpha 0.05, beta 0.20",
+              "directness": "direct",
+              "independent": true,
+              "skipMarked": false,
+              "execution": "not-verified"
+            }
+          ],
+          "unsupportedObligations": [],
+          "explanation": []
+        }
+      ],
+      "verdictCounts": {
+        "pass-with-warnings": 1,
+        "block": 2,
+        "pass": 2
+      },
+      "consistent": false,
+      "cellPass": false
+    }
+  ]
+}

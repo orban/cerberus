@@ -1,0 +1,25 @@
+{
+  "comment": "Construction recipe for the isolated case repositories. baseArchive/headArchive are commits in the host repo whose TREES are exported with `git archive` (no history, no commit messages leak). Overlays are applied on top. Expected verdicts live only in oracle/expectations.json, never here. This manifest is the matched-pair subset (case-05, case-06) of the full six-case benchmark at cerberus commit c90ca80.",
+  "cases": [
+    {
+      "id": "case-05",
+      "baseArchive": "ca7cf45",
+      "headArchive": "ca7cf45",
+      "baseOverlay": "case-05/base-overlay",
+      "headOverlay": "case-05/head-overlay",
+      "baseCommitSubject": "initial state",
+      "headCommitSubject": "fix: correct SPRT decision boundary convention",
+      "description": "case-05/description.md"
+    },
+    {
+      "id": "case-06",
+      "baseArchive": "ca7cf45",
+      "headArchive": "ca7cf45",
+      "baseOverlay": "case-06/base-overlay",
+      "headOverlay": "case-06/head-overlay",
+      "baseCommitSubject": "initial state",
+      "headCommitSubject": "fix: correct SPRT decision boundary convention",
+      "description": "case-06/description.md"
+    }
+  ]
+}

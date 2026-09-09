@@ -1,0 +1,24 @@
+[
+  {
+    "id": "case-05",
+    "dir": "/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-bde1Oz/case-05",
+    "baseSha": "8f907d1a446840ab10f64e42958c8380ff405b34",
+    "headSha": "004c0ba49473206aafc16eeab24bf2775a21e40d",
+    "changedFiles": [
+      "src/stats.ts",
+      "tests/boundary-decision.test.ts",
+      "tests/stats.test.ts"
+    ]
+  },
+  {
+    "id": "case-06",
+    "dir": "/var/folders/30/rgkwpbzx2jgffphp6js07r9h0000gn/T/chk-bde1Oz/case-06",
+    "baseSha": "8f907d1a446840ab10f64e42958c8380ff405b34",
+    "headSha": "f6e497a7ad8deebeb111eedb36077c8bfd277732",
+    "changedFiles": [
+      "src/stats.ts",
+      "tests/boundary-decision.test.ts",
+      "tests/stats.test.ts"
+    ]
+  }
+]
