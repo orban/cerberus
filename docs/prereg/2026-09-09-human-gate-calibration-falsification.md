@@ -214,7 +214,7 @@ Made by the facilitator on 2026-09-09, before any case was sampled.
 |---|---|
 | frozen by | Ryan Orban, by written instruction; recorded by the drafting agent |
 | frozen at (UTC) | 2026-09-09T16:58:00Z |
-| freeze commit | FREEZE_COMMIT_PLACEHOLDER |
+| freeze commit | 5e3ab154c2ef7b584a3aae928e1f2935d0834ef2 |
 | labeler | Ryan Orban (sole; internally labeled) |
 | Atlas trajectories included | yes |
 | panel model ids | gpt-5.6-sol, gemini-3.8-flash, grok-4.6 |
