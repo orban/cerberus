@@ -3,3 +3,8 @@ dist/
 .cerberus/
 *.tsbuildinfo
 .DS_Store
+
+# Figure screenshots and preview scaffolding (regenerate from docs/blog/figures/generate.mjs)
+/*.png
+docs/blog/figures/_*.html
+.playwright-mcp/
