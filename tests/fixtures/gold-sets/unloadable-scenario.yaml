@@ -1,0 +1,29 @@
+# 20 entries, five of which name a scenario file that does not exist.
+#
+# A gold-set entry whose scenario cannot be loaded degrades to an unrated unit
+# rather than ending the run, so this set is well-formed, provenanced and
+# full-sized and still pairs only 15 units -- statistically indistinguishable
+# from a judge that disagreed, which is why the runner names it on stderr.
+provenance: random-sample-of-trial-population
+
+entries:
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/no-such-scenario.yaml, label: fail }
+  - { scenario: scenarios/no-such-scenario.yaml, label: fail }
+  - { scenario: scenarios/no-such-scenario.yaml, label: fail }
+  - { scenario: scenarios/no-such-scenario.yaml, label: fail }
+  - { scenario: scenarios/no-such-scenario.yaml, label: fail }

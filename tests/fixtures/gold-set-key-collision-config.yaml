@@ -1,0 +1,38 @@
+# Two study/contract pairs that collide under a `::`-joined gold-set key.
+#
+#   study "alpha"      + contract "beta::gamma"  ->  alpha::beta::gamma
+#   study "alpha::beta" + contract "gamma"       ->  alpha::beta::gamma
+#
+# Only the first declares a `gold_set`. Under the flattened key the second --
+# which has no human labels at all -- would retrieve the first's, certify on
+# them and gate: an uncertified judge reaching the exit code, the exact thing
+# gating exists to prevent. The key has to be injective, so it is built with
+# JSON.stringify rather than a separator join.
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: "alpha"
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: "beta::gamma"
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/certified.yaml
+        threshold: 0.50
+        confidence: 0.80
+        trials: 4
+
+  - name: "alpha::beta"
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: "gamma"
+        type: judge
+        rubric: "Check output quality"
+        threshold: 0.50
+        confidence: 0.80
+        trials: 4

@@ -1,0 +1,47 @@
+# Judge contracts on the calibrated path, all driven by the scripted judge in
+# tests/fixtures/scripted-judge.ts -- no API key is ever read.
+#
+# confidence: 0.80 is load-bearing, not decoration. It fixes alpha_C at 0.1333,
+# which puts the 20-unit calibration interval at +/- 0.144. That is narrow
+# enough for `clear-gap` (threshold 0.50) to clear the threshold from above and
+# wide enough for `floor-guarded` (threshold 0.75) to straddle it before the
+# first trial.
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: calibrated-judge
+    scenario: scenarios/simple.yaml
+    contracts:
+      # AE3: certified judge, clear gap. Stops decisively above the threshold
+      # well before its 60-trial budget.
+      - name: clear-gap
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/certified.yaml
+        threshold: 0.50
+        confidence: 0.80
+        trials: 60
+
+      # R10: the calibration interval alone straddles 0.75 at the gold set's
+      # own judged rate (0.75), so this contract never runs a trial.
+      - name: floor-guarded
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/certified.yaml
+        threshold: 0.75
+        confidence: 0.80
+        trials: 60
+
+      # AE1: no gold set, so this one stays on the SPRT path over the raw
+      # judged rate and is reported uncalibrated.
+      - name: uncalibrated
+        type: judge
+        rubric: "Check output quality"
+        threshold: 0.90
+        confidence: 0.95
+        trials: 30

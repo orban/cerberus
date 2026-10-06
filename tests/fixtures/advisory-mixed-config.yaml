@@ -1,0 +1,27 @@
+# A failing gating code contract alongside a failing advisory judge contract.
+# The suite fails, but only the code contract is the cause: the judge contract
+# is reported and excluded from the rollup.
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: mixed-gating
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: never-holds
+        type: code
+        assert: "output.meta.exitCode === 1"
+        threshold: 0.90
+        confidence: 0.95
+        trials: 20
+
+      - name: advisory-judge
+        type: judge
+        rubric: "Check output quality"
+        threshold: 0.90
+        confidence: 0.95
+        trials: 20

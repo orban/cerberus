@@ -1,0 +1,35 @@
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: judge-study
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: valid-gold-set
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/valid.yaml
+
+      - name: malformed-gold-set
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/malformed.yaml
+
+      - name: empty-gold-set
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/empty.yaml
+
+      - name: undersized-gold-set
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/undersized.yaml
+
+      - name: unprovenanced-gold-set
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/unprovenanced.yaml

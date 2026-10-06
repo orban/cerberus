@@ -1,0 +1,15 @@
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: judge-study
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: missing-gold-set
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/does-not-exist.yaml

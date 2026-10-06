@@ -1,0 +1,24 @@
+# A gold set five of whose entries point at a scenario file that is not there.
+#
+# The five entries degrade to unrated units, so 15 of 20 pair -- the same shape
+# a judge error or a crashed agent trial produces. Nothing throws; the run just
+# has to say out loud that it could not load them, or a typo'd path is
+# indistinguishable from a judge disagreeing with a human label.
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: unloadable-scenario
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: gold-set-with-a-bad-path
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/unloadable-scenario.yaml
+        threshold: 0.50
+        confidence: 0.95
+        trials: 20

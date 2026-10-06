@@ -1,0 +1,29 @@
+# Two studies, neither carrying a single gating contract. One judge passes and
+# one fails; the suite is vacuously passing either way.
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: advisory-passing
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: advisory-passes
+        type: judge
+        rubric: "Check output quality"
+        threshold: 0.50
+        confidence: 0.95
+        trials: 20
+
+  - name: advisory-failing
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: advisory-fails
+        type: judge
+        rubric: "Check output quality"
+        threshold: 0.90
+        confidence: 0.95
+        trials: 20
