@@ -1,0 +1,6 @@
+# Matched pair (case-05 / case-06) fixture integrity — 2026-07-11, run before the r3 benchmark (sequential; no benchmark in flight)
+- Only file differing between the two fixture trees: tests/boundary-decision.test.ts (expected-value provenance). Verified with `diff -r`.
+- case-05 head tree: full vitest suite 82 passed (82).
+- case-06 head tree: full vitest suite 82 passed (82).
+- Discriminating power: case-05's boundary-decision.test.ts run against the BUGGY ca7cf45 stats.ts fails 2/2 (hand-computed constants catch the swapped boundaries).
+- case-06's test restates the implementation's formula expression; authored against the buggy implementation it would have restated the buggy formulas and passed — the exact provenance failure of the contemporaneous test in case-01 (ca7cf45).

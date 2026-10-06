@@ -1,0 +1,29 @@
+{
+  "comment": "HIDDEN ORACLE. Loaded only by the scorer after raw results are persisted. Never copied into case repositories or passed to the system under test.",
+  "scoring_rules": {
+    "pass_verdicts": [
+      "pass",
+      "pass-with-warnings"
+    ],
+    "note": "needs-evidence and split-required are never converted to PASS; they score as refusals.",
+    "evidentiary_note": "When a case lists evidentiaryRuleIds, a refusal scores as a pass only if it cites one of those rules. A refusal for an unrelated reason (e.g. PR size) is refused-for-the-wrong-reason and scores as a failure."
+  },
+  "cases": {
+    "case-05": {
+      "scenario": "Matched pair, independent variant: corrected SPRT boundaries plus a new test whose expected values are hand-computed numeric constants derived from Wald's error-bound inequalities. Byte-identical to case-06 except for how the expected values in tests/boundary-decision.test.ts were derived.",
+      "mustBe": [
+        "pass",
+        "pass-with-warnings"
+      ],
+      "rationale": "Genuinely independent evidence: the numeric constants come from theory, not from the implementation, and would fail against a wrong implementation."
+    },
+    "case-06": {
+      "scenario": "Matched pair, circular variant: the same corrected-boundary change and the same new test file with the same test names, but the expected values restate the implementation's own formula expression (Math.log((1-alpha)/beta)). The shared description claims independent derivation, which is false here. Ground-truth evidence independence is the ONLY difference from case-05.",
+      "mustBe": [
+        "needs-evidence",
+        "block"
+      ],
+      "rationale": "The test mirrors the implementation's formula, so it cannot have caught a wrong formula at authoring time \u2014 exactly how the historical defect's contemporaneous test passed. A checker that accepts case-05 must refuse case-06 to demonstrate it reads evidentiary value rather than surface structure."
+    }
+  }
+}

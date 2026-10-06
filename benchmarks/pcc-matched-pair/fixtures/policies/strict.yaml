@@ -1,0 +1,19 @@
+# PRD Phase 2 "selective gating" posture: all block rules enabled, plus a
+# repository invariant requiring evidence for changes to core decision logic.
+# This is a plausible design-partner policy; it encodes nothing about any
+# specific defect or expected benchmark verdict.
+version: 1
+thresholds:
+  max_unrelated_clusters: 2
+rules:
+  block_destructive_migration_without_rollback: true
+  block_permission_change_without_auth_test: true
+  block_critical_claim_without_direct_evidence: true
+invariants:
+  - name: statistical-decision-core
+    description: Changes to statistical decision logic require direct, independent test evidence.
+    paths:
+      - "src/stats.ts"
+      - "src/runner.ts"
+    requires_evidence: true
+    severity: critical
