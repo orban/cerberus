@@ -34,8 +34,6 @@ import {
   createSPRT,
   updateSPRT,
   wilsonScoreInterval,
-  bonferroniCorrection,
-  benjaminiHochbergCorrection,
   clampUnit,
 } from "./stats.js";
 import { certifyJudge } from "./calibration.js";
@@ -423,9 +421,8 @@ function updateCalibrated(
 //
 // KD3: gold labels are required to gate. A judge that was never measured
 // against humans has no authority over CI's exit, so its verdict is reported
-// and then held out of both rollups — the suite status and the
-// multiple-comparison family. The envelope is settled here, before trial 1,
-// alongside the certification it reads.
+// and then held out of the suite-status rollup. The envelope is settled here,
+// before trial 1, alongside the certification it reads.
 
 /** What a contract may do with its verdict, and why not, if not. */
 interface GatingEnvelope {
@@ -899,9 +896,6 @@ export async function runSuite(
     }
   }
 
-  // Apply multiple testing correction
-  applyCorrection(config, studies);
-
   // KTD7: the suite status is the rollup of the GATING contracts only, so an
   // advisory judge reporting `fail` cannot flip the exit code (AE1). A suite
   // with no gating contract at all is vacuously passing.
@@ -930,47 +924,4 @@ export async function runSuite(
     studies,
     durationMs: performance.now() - start,
   };
-}
-
-// ── Multiple testing correction ──────────────────────────────
-
-function applyCorrection(
-  config: ValidatedConfig,
-  studies: StudyResult[],
-): void {
-  const correction = config.raw.correction;
-  if (correction === "none") return;
-
-  // KTD7: only gating contracts enter the family. A hypothesis that cannot
-  // drive the exit should not spend alpha budget on the ones that can, and it
-  // receives no corrected alpha of its own. This filter is also what keeps
-  // advisory contracts away from the BH proxy-p-value scheme below, which maps
-  // anything it does not recognise to 0.5 without saying so.
-  const allResults = studies
-    .flatMap((s) => s.contractResults)
-    .filter((r) => r.gating);
-  const n = allResults.length;
-  if (n <= 1) return;
-
-  if (correction === "bonferroni") {
-    const corrected = bonferroniCorrection(
-      allResults[0]!.ci.n > 0 ? 0.05 : 0.05, // base alpha
-      n,
-    );
-    for (let i = 0; i < n; i++) {
-      (allResults[i] as { correctedAlpha?: number }).correctedAlpha = corrected[i];
-    }
-  } else {
-    // BH correction: use 1 - observedRate as a proxy p-value
-    // (this is a simplification; true p-values would require more computation)
-    const pValues = allResults.map((r) => {
-      if (r.status === "pass") return 0.001; // clearly passing
-      if (r.status === "fail") return 0.999; // clearly failing
-      return 0.5; // inconclusive
-    });
-    const result = benjaminiHochbergCorrection(pValues, 0.05);
-    for (let i = 0; i < n; i++) {
-      (allResults[i] as { correctedAlpha?: number }).correctedAlpha = result.correctedAlphas[i];
-    }
-  }
 }

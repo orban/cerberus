@@ -123,7 +123,6 @@ export interface ContractResult {
   readonly ci: ConfidenceInterval;
   readonly trialsEvaluated: number;
   readonly sprtStoppedEarly: boolean;
-  readonly correctedAlpha?: number;
   /**
    * Judge contracts only, so a code contract's result shape is untouched.
    * `false` marks a judge contract running on the raw judged rate for want of
@@ -140,8 +139,7 @@ export interface ContractResult {
    * `true` only with an unmarked gold set and a `pass` certification.
    *
    * An advisory contract still reports the verdict it would have had — it is
-   * simply excluded from the suite-status rollup and from the
-   * multiple-comparison family, so it never spends alpha budget either.
+   * simply excluded from the suite-status rollup.
    */
   readonly gating: boolean;
   /**

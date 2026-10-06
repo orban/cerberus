@@ -109,7 +109,19 @@ const CerberusConfigSchema = z.object({
   adapter: AdapterSchema,
   judges: z.array(JudgeProviderSchema).default([]),
   studies: z.array(StudySchema).min(1),
-  correction: z.enum(["bh", "bonferroni", "none"]).default("bh"),
+  // Multiple-testing correction was removed: the BH path fed placeholder
+  // values (0.001/0.999/0.5) that are not p-values, and its output never
+  // changed a decision. Deriving sequentially valid p-values after SPRT
+  // stopping is a separate problem. The key stays so an old config fails
+  // loudly instead of silently losing a control it never had.
+  correction: z
+    .literal("none", {
+      errorMap: () => ({
+        message:
+          'correction: only "none" is supported. The "bh" and "bonferroni" paths were removed because they never performed valid error control.',
+      }),
+    })
+    .default("none"),
 });
 
 // ── Inferred types ───────────────────────────────────────────
