@@ -1,0 +1,41 @@
+entries:
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: fail
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: fail
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: fail
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: fail
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: fail
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: pass
+  - scenario: scenarios/simple.yaml
+    label: fail

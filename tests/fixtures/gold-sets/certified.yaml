@@ -1,0 +1,29 @@
+# A gold set the scripted judge agrees with perfectly: it passes GOLD-A and
+# fails GOLD-B, and the human labels say the same. 20 units (the minimum), so
+# alpha is 1.0 (verdict `pass`) and the confusion matrix is tp=15, tn=5,
+# fp=fn=0 -- delta = 0 with a calibration interval of +/- 0.144 at alpha_C =
+# 0.1333 (contract confidence 0.80). The judge's own rate over the gold set is
+# 15/20 = 0.75, which is the rate the pre-trial floor guard anchors on.
+provenance: random-sample-of-trial-population
+
+entries:
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-a.yaml, label: pass }
+  - { scenario: scenarios/gold-b.yaml, label: fail }
+  - { scenario: scenarios/gold-b.yaml, label: fail }
+  - { scenario: scenarios/gold-b.yaml, label: fail }
+  - { scenario: scenarios/gold-b.yaml, label: fail }
+  - { scenario: scenarios/gold-b.yaml, label: fail }

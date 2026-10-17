@@ -1,0 +1,22 @@
+# The judge over-passes: the gold set puts four of its passes on units a human
+# labelled fail, so delta = -0.20 and the corrected rate lands 0.20 below the
+# judged rate. The threshold is deliberately far below both so the contract
+# runs rather than being refused by the floor guard.
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: biased-judge
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: over-passing-judge
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/biased.yaml
+        threshold: 0.11
+        confidence: 0.80
+        trials: 40

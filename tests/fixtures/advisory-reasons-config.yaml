@@ -1,0 +1,68 @@
+# R12's four causes, one contract each.
+#
+# `floor-too-wide` reuses the `certified` gold set at threshold 0.75 with
+# confidence 0.80, the combination the R10 floor guard was built against: the
+# judge certifies `pass` and is refused anyway. The other three hang off
+# scenarios/simple.yaml, which is also the trial scenario -- the scripted judge
+# passes it unconditionally, so the calibration pass and the trial loop see the
+# same verdict.
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: advisory-reasons
+    scenario: scenarios/simple.yaml
+    contracts:
+      # No gold set at all: never certified, so there are no ineligibility
+      # reasons to source and this case has to be named on its own.
+      - name: no-labels
+        type: judge
+        rubric: "Check output quality"
+        threshold: 0.50
+        confidence: 0.95
+        trials: 6
+
+      # U4 marked this gold set `undersized`.
+      - name: marked-labels
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/undersized.yaml
+        threshold: 0.50
+        confidence: 0.95
+        trials: 6
+
+      # An unmarked, full-sized gold set the judge disagrees with on 6 of 20
+      # units: alpha lands below the marginal band, so the verdict is `fail`.
+      - name: weak-certification
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/valid.yaml
+        threshold: 0.15
+        confidence: 0.95
+        trials: 6
+
+      # Certifies `pass`; the calibration floor alone straddles 0.75. The band
+      # is centred exactly on 0.75 here (delta is 0 and the judge's own gold-set
+      # rate is 0.75), so there is no gap for the labels-needed solver to close
+      # and no estimate is reported.
+      - name: floor-too-wide
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/certified.yaml
+        threshold: 0.75
+        confidence: 0.80
+        trials: 6
+
+      # The same floor against a threshold 0.05 off its centre: still refused,
+      # but now with a gap to close, so R12's labels estimate is defined.
+      - name: floor-with-a-gap
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/certified.yaml
+        threshold: 0.70
+        confidence: 0.80
+        trials: 6

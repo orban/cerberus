@@ -22,14 +22,13 @@ Does not own: test fixtures, build config, documentation. Tests live in `../test
 | Domain types (TrialResult, SPRTState, SuiteResult) | `types.ts` |
 | Trial execution (spawn agent process) | `runner.ts` `executeTrial()` |
 | SPRT loop and study orchestration | `runner.ts` `runStudy()` |
-| Suite-level runner + multiple-testing correction | `runner.ts` `runSuite()` + `applyCorrection()` |
+| Suite-level runner + status rollup | `runner.ts` `runSuite()` |
 | Code contract evaluation (vm sandbox) | `contracts.ts` `evaluateCodeContract()` |
 | LLM judge panel evaluation | `judges.ts` `evaluateWithPanel()` |
 | LLM provider implementations (OpenAI, Anthropic, Google) | `judges.ts` `callOpenAI()`, `callAnthropic()`, `callGoogle()` |
 | Judge response parsing (3 fallback strategies) | `judges.ts` `parseVerdict()` |
 | SPRT math (create, update, boundaries) | `stats.ts` |
 | Wilson score confidence intervals | `stats.ts` `wilsonScoreInterval()` |
-| BH and Bonferroni corrections | `stats.ts` |
 | TTY progress bar + result table | `output.ts` |
 | JSON output + result persistence | `output.ts` `writeJsonOutput()`, `persistResult()` |
 | Error hierarchy | `errors.ts` |
@@ -65,9 +64,12 @@ cli.ts → config.ts → runner.ts → contracts.ts → judges.ts
 ```typescript
 // The config loaded from cerberus.yaml
 interface ValidatedConfig {
-  raw: CerberusConfig;      // Zod-validated config
+  raw: CerberusConfig;          // Zod-validated config
   parsedCommand: ParsedCommand; // Split command + placeholder index
-  configDir: string;         // For resolving relative scenario paths
+  configDir: string;            // For resolving relative scenario paths
+  // Gold sets for judge contracts that declare `gold_set`, keyed by
+  // `goldSetKey(study.name, contract.name)`. Empty when none declares one.
+  goldSets: ReadonlyMap<string, GoldSetLoadResult>;
 }
 
 // Result of a single trial against one contract
@@ -82,10 +84,37 @@ interface ContractVerdict {
 interface ContractResult {
   contractName: string;
   status: "pass" | "fail" | "inconclusive";
+  // The BIAS-CORRECTED true-rate estimate for a calibrated judge contract;
+  // the raw observed pass rate for every other contract.
   observedRate: number;
-  ci: ConfidenceInterval;     // Wilson score interval
+  // Wilson score interval on the SPRT path (code contracts and judge
+  // contracts with no usable gold set). For a CALIBRATED judge contract it is
+  // instead the corrected interval: the sampling term and the calibration
+  // term summed ON ENDPOINTS, then clamped once to the unit interval.
+  ci: ConfidenceInterval;
   trialsEvaluated: number;
   sprtStoppedEarly: boolean;
+
+  // Whether this contract may drive the exit code. Code contracts are exact
+  // oracles and are always true; a judge contract is true only with an
+  // unmarked gold set and a `pass` certification. Advisory contracts still
+  // report their verdict but are excluded from the suite-status rollup.
+  gating: boolean;
+
+  calibrated?: boolean;        // judge contracts only
+  stopReason?: ContractStopReason;  // calibrated contracts only, once stopped
+  judgedRate?: number;         // calibrated contracts only: the raw judged rate
+  advisoryReasons?: readonly AdvisoryReason[];  // non-empty iff !gating
+  goldSetSize?: number;        // human-labelled entries; absent with no gold set
+  pairedUnits?: number;        // entries carrying BOTH a label and a verdict
+  // Three-state, and the three are different answers:
+  //   a number  -- that TOTAL gold-set size would separate the threshold
+  //   null      -- the threshold sits on the calibration band's centre, so NO
+  //                gold-set size separates it (an answer, not a missing value)
+  //   absent    -- the calibration floor is not why this contract is advisory,
+  //                so nothing was ever solved for
+  // The JSON writer keys off PRESENCE, not value, to keep null distinct.
+  labelsNeeded?: number | null;
 }
 ```
 
@@ -123,9 +152,6 @@ cerberus.yaml -> loadConfig() -> ValidatedConfig
                     |                        |
                     +------------------------+
                                     |
-                          applyCorrection()
-                          (BH / Bonferroni)
-                                    |
                             SuiteResult
                                     |
                      formatResults() or writeJsonOutput()
@@ -142,7 +168,7 @@ cerberus.yaml -> loadConfig() -> ValidatedConfig
 | Scenario passed as temp JSON file | Agent reads scenario from a file path, not stdin; avoids quoting/escaping issues | Piping via stdin is fragile with `spawn()` |
 | Model prefix routing (`gpt-*` -> OpenAI, etc.) | Simple heuristic; no config for provider name needed | Explicit provider field adds config complexity |
 | Wilson score CI (not Wald) | Better coverage for small sample sizes and extreme proportions (0% or 100%) | Wald CI is inaccurate at boundaries |
-| BH correction as default | Less conservative than Bonferroni for multiple contracts | Bonferroni available but rejects too aggressively |
+| No multiple-testing correction across contracts | The earlier BH path fed placeholder values (0.001/0.999/0.5), not p-values, and its output never changed a decision, so it implied error control it did not perform | Keeping it as a "documented simplification"; deriving sequentially valid p-values after SPRT stopping is a separate research problem |
 
 ## Entry Points
 | Task | Start Here |
@@ -202,7 +228,7 @@ cerberus.yaml -> loadConfig() -> ValidatedConfig
 
 - `executeTrial()` resolves with a result even on spawn errors or timeouts -- it never rejects. Errors show up as `exitCode: 1` in the trial output, not as thrown exceptions.
 - `parseVerdict()` in `judges.ts` tries 3 strategies to extract JSON from LLM responses (direct parse, code block, brace matching). Don't assume LLMs return clean JSON.
-- The `applyCorrection()` function in `runner.ts` uses proxy p-values (0.001 for pass, 0.999 for fail, 0.5 for inconclusive) rather than true statistical p-values. This is a documented simplification.
+- `correction:` in config accepts only `"none"`. Configs naming `bh` or `bonferroni` fail validation on purpose; see Decisions.
 - `threshold` minimum is 0.11 (not 0.10) in the Zod schema because `p1 = threshold - 0.10` must stay above 0.01.
 - `configDir` is `dirname(resolve(configPath))`, not cwd. Scenario paths in the config are relative to the config file, not to where you run the command.
 - `displayProgress()` writes to stderr, not stdout. stdout is reserved for JSON output when `--json` is used.

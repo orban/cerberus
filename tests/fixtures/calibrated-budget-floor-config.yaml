@@ -1,0 +1,30 @@
+# A label-limited stop reached at the BUDGET boundary, below 50 trials.
+#
+# The pre-trial floor guard admits this contract: the certified gold set's own
+# judged rate is 0.75, and 0.75 +/- 0.144 clears the 0.50 threshold. The
+# scripted judge then passes 3 trials in 5, so the running judged rate settles
+# at 0.60 -- where the +/- 0.144 calibration interval alone straddles 0.50.
+#
+# The in-run label-limited check does not fire before 50 observed trials, and
+# the budget is 10. What blocks the decision is the calibration floor, not the
+# sample size, so the stop at the budget must say `label-limited`: telling this
+# user "more trials would resolve it" is the misdiagnosis the three-way stop
+# exists to prevent.
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: budget-floor
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: straddles-at-the-budget
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/certified.yaml
+        threshold: 0.50
+        confidence: 0.80
+        trials: 10

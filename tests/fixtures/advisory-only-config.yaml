@@ -1,0 +1,21 @@
+# AE1: the suite's ONLY judge contract has no gold set, so it can never gate.
+# The scripted judge fails every trial, so the contract lands `fail` -- and the
+# suite must still be `pass`, because an uncalibrated judge has no authority to
+# drive CI's exit (KD3).
+adapter:
+  command: "node ./tests/fixtures/agents/echo.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: advisory-only
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: advisory-judge
+        type: judge
+        rubric: "Check output quality"
+        threshold: 0.90
+        confidence: 0.95
+        trials: 20

@@ -1,0 +1,26 @@
+# A gold set whose agent crashes on one of its two scenarios.
+#
+# `certified.yaml` carries 20 entries over GOLD-A (15) and GOLD-B (5). This
+# adapter exits 1 on GOLD-B, so those five entries never reach the judge at all
+# and stay unrated: 15 units pair, exactly as if the judge had errored on them.
+#
+# The trial scenario is scenarios/simple.yaml, which the agent runs cleanly, so
+# the trial loop is unaffected -- only the calibration pass loses units.
+adapter:
+  command: "node ./tests/fixtures/agents/crash-on-gold-b.js --scenario {{scenario}}"
+  timeout: 5000
+
+judges:
+  - model: "claude-3-5-sonnet-20241022"
+
+studies:
+  - name: crashed-gold-trial
+    scenario: scenarios/simple.yaml
+    contracts:
+      - name: agent-died-on-gold-b
+        type: judge
+        rubric: "Check output quality"
+        gold_set: gold-sets/certified.yaml
+        threshold: 0.50
+        confidence: 0.95
+        trials: 20
